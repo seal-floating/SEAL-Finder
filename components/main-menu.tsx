@@ -19,8 +19,8 @@ export default function MainMenu({ onPlay, onRanking, onHowToPlay }: MainMenuPro
             <SealImage className="w-20 h-20" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold">Find the SEAL</h1>
-        <p className="text-gray-500 mt-2">A Minesweeper-like game with seals</p>
+        <h1 className="text-3xl font-bold text-black dark:text-white">Find the SEAL</h1>
+        <p className="text-gray-700 dark:text-gray-300 mt-2">A Minesweeper-like game with seals</p>
       </div>
 
       <div className="w-full space-y-3 max-w-xs">

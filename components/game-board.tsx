@@ -48,7 +48,7 @@ export default function GameBoard({ board, level, onCellClick }: GameBoardProps)
                 ) : cell.hasSeal ? (
                   <SealImage className="w-6 h-6 md:w-7 md:h-7" />
                 ) : (
-                  <span className="text-gray-500">{cell.adjacentFailures || ""}</span>
+                  <span className="text-gray-800 dark:text-gray-200">{cell.adjacentFailures || ""}</span>
                 ))}
             </button>
           )),

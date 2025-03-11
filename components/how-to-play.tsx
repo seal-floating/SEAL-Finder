@@ -19,8 +19,8 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
       </div>
 
       <div className="space-y-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <p className="text-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+          <p className="text-blue-800 dark:text-blue-300">
             Find the SEAL is a game similar to Minesweeper where you hunt for seals while avoiding failures (bombs).
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Tap on cells</h3>
-              <p className="text-gray-600">Tap on cells to reveal what's underneath.</p>
+              <p className="text-gray-700 dark:text-gray-300">Tap on cells to reveal what's underneath.</p>
             </div>
           </div>
 
@@ -44,7 +44,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Find all the seals</h3>
-              <p className="text-gray-600">Your goal is to find all the seals hidden in the grid.</p>
+              <p className="text-gray-700 dark:text-gray-300">Your goal is to find all the seals hidden in the grid.</p>
             </div>
           </div>
 
@@ -54,7 +54,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Avoid failures</h3>
-              <p className="text-gray-600">Be careful not to tap on cells containing failures (bombs).</p>
+              <p className="text-gray-700 dark:text-gray-300">Be careful not to tap on cells containing failures (bombs).</p>
             </div>
           </div>
 
@@ -64,7 +64,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Number clues</h3>
-              <p className="text-gray-600">Numbers indicate how many failures are in the adjacent cells.</p>
+              <p className="text-gray-700 dark:text-gray-300">Numbers indicate how many failures are in the adjacent cells.</p>
             </div>
           </div>
 
@@ -74,7 +74,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Beat the clock</h3>
-              <p className="text-gray-600">Each level has a time limit. Find all seals before time runs out!</p>
+              <p className="text-gray-700 dark:text-gray-300">Each level has a time limit. Find all seals before time runs out!</p>
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export default function HowToPlay({ onBack }: HowToPlayProps) {
             </div>
             <div>
               <h3 className="font-medium">Difficulty levels</h3>
-              <p className="text-gray-600">
+              <p className="text-gray-700 dark:text-gray-300">
                 Choose from Easy (5×5, 2 min), Medium (7×7, 3 min), or Hard (10×10, 5 min) grids.
               </p>
             </div>

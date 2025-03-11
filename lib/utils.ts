@@ -17,11 +17,11 @@ export function getTimeColor(remainingTime: number, totalTime: number): string {
   const percentage = remainingTime / totalTime
 
   if (percentage <= 0.25) {
-    return "text-red-500" // Less than 25% time remaining
+    return "text-red-500 dark:text-red-400" // Less than 25% time remaining
   } else if (percentage <= 0.5) {
-    return "text-orange-500" // Less than 50% time remaining
+    return "text-orange-500 dark:text-orange-400" // Less than 50% time remaining
   } else {
-    return "text-gray-500" // More than 50% time remaining
+    return "text-gray-700 dark:text-gray-300" // More than 50% time remaining
   }
 }
 

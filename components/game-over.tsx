@@ -63,7 +63,7 @@ export default function GameOver({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-10">
-      <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
         <h2 className="text-2xl font-bold mb-4">{gameState === "won" ? "🎉 You Won! 🎉" : "💥 Game Over 💥"}</h2>
 
         <p className="mb-2">
@@ -83,8 +83,8 @@ export default function GameOver({
         )}
 
         {gameState === "won" && rank !== null && (
-          <div className="bg-blue-50 p-3 rounded-md mb-6">
-            <p className="font-medium">{rank <= 3 ? `🏆 Amazing! You're ranked #${rank}` : `Your rank: #${rank}`}</p>
+          <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md mb-6">
+            <p className="font-medium text-blue-800 dark:text-blue-300">{rank <= 3 ? `🏆 Amazing! You're ranked #${rank}` : `Your rank: #${rank}`}</p>
           </div>
         )}
 
