@@ -202,9 +202,9 @@ export default function Home() {
       case "game":
         return (
           <>
-            <div className="p-4 bg-primary text-primary-foreground text-center">
-              <h1 className="text-2xl font-bold">Find the SEAL Game</h1>
-              <p className="text-sm opacity-90">Find all the seals while avoiding failures!</p>
+            <div className="p-4 bg-primary text-center">
+              <h1 className="text-2xl font-bold text-white">Find the SEAL Game</h1>
+              <p className="text-sm text-white">Find all the seals while avoiding failures!</p>
             </div>
 
             <LevelSelect currentLevel={level} onLevelChange={handleLevelChange} />
