@@ -1,8 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Clock, Target, Trophy, Home } from "lucide-react"
+import { Clock, Trophy, Home } from "lucide-react"
 import { formatTime, getTimeColor } from "@/lib/utils"
+import { SealIcon } from "@/components/icons"
 
 interface GameHeaderProps {
   remainingTime: number
@@ -45,7 +46,7 @@ export default function GameHeader({
         </div>
 
         <div className="flex items-center space-x-2">
-          <Target className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+          <SealIcon className="w-4 h-4 text-blue-500 dark:text-blue-400" />
           <span className="text-black dark:text-white">
             {sealsFound}/{totalSeals}
           </span>

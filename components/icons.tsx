@@ -7,18 +7,31 @@ export function SealIcon({ className = "" }: IconProps) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       className={className}
     >
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" />
-      <path d="M12 8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z" />
-      <path d="M10 16c0 1.1.9 2 2 2s2-.9 2-2" />
-      <path d="M9 10c-.6 0-1 .4-1 1s.4 1 1 1" />
-      <path d="M15 10c.6 0 1 .4 1 1s-.4 1-1 1" />
+      {/* Main seal face - filled circle */}
+      <circle cx="12" cy="12" r="10" fill="currentColor" />
+      
+      {/* Eyes */}
+      <circle cx="9" cy="9" r="1.5" fill="white" />
+      <circle cx="15" cy="9" r="1.5" fill="white" />
+      <circle cx="9" cy="9" r="0.5" fill="black" />
+      <circle cx="15" cy="9" r="0.5" fill="black" />
+      
+      {/* Nose */}
+      <ellipse cx="12" cy="12" rx="2" ry="1.5" fill="black" />
+      
+      {/* Mouth */}
+      <path d="M8.5 14.5C10 16 14 16 15.5 14.5" stroke="white" strokeWidth="1" fill="none" />
+      
+      {/* Whiskers */}
+      <line x1="5" y1="12" x2="8" y2="12" stroke="white" strokeWidth="0.75" />
+      <line x1="16" y1="12" x2="19" y2="12" stroke="white" strokeWidth="0.75" />
+      <line x1="5" y1="10.5" x2="8" y2="11" stroke="white" strokeWidth="0.75" />
+      <line x1="16" y1="11" x2="19" y2="10.5" stroke="white" strokeWidth="0.75" />
+      <line x1="5" y1="13.5" x2="8" y2="13" stroke="white" strokeWidth="0.75" />
+      <line x1="16" y1="13" x2="19" y2="13.5" stroke="white" strokeWidth="0.75" />
     </svg>
   )
 }
