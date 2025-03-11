@@ -13,6 +13,7 @@ import { generateBoard, LEVEL_CONFIGS } from "@/lib/game-utils"
 import { getLeaderboard, getTelegramWebApp } from "@/lib/leaderboard-service"
 import Script from "next/script"
 import FloatingMenuButton from "@/components/floating-menu-button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 type AppScreen = "menu" | "game" | "howToPlay"
 
@@ -254,6 +255,8 @@ export default function Home() {
       {showLeaderboard && (
         <Leaderboard entries={leaderboardEntries} currentLevel={level} onClose={() => setShowLeaderboard(false)} />
       )}
+      
+      <ThemeToggle />
     </>
   )
 }
