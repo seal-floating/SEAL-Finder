@@ -31,11 +31,11 @@ export default function GameBoard({ board, level, onCellClick }: GameBoardProps)
                 ${
                   cell.isRevealed
                     ? cell.hasFailure
-                      ? "bg-red-100"
+                      ? "bg-red-100 dark:bg-red-900"
                       : cell.hasSeal
-                        ? "bg-emerald-100"
-                        : "bg-gray-100"
-                    : "bg-emerald-200 hover:bg-emerald-300"
+                        ? "bg-emerald-100 dark:bg-emerald-900"
+                        : "bg-gray-100 dark:bg-gray-700"
+                    : "bg-emerald-200 dark:bg-emerald-800 hover:bg-emerald-300 dark:hover:bg-emerald-700"
                 }
                 transition-colors
               `}
@@ -48,7 +48,7 @@ export default function GameBoard({ board, level, onCellClick }: GameBoardProps)
                 ) : cell.hasSeal ? (
                   <SealImage className="w-6 h-6 md:w-7 md:h-7" />
                 ) : (
-                  <span className="text-gray-800 dark:text-gray-200">{cell.adjacentFailures || ""}</span>
+                  <span className="text-gray-800 dark:text-white font-bold">{cell.adjacentFailures || ""}</span>
                 ))}
             </button>
           )),
