@@ -247,8 +247,8 @@ export default function Home() {
       {/* Telegram WebApp Script */}
       <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
 
-      <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-emerald-50">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">{renderScreen()}</div>
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-950">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 text-black dark:text-white rounded-lg shadow-lg overflow-hidden">{renderScreen()}</div>
       </main>
 
       {showLeaderboard && (

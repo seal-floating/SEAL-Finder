@@ -29,7 +29,7 @@ export default function LevelSelect({ currentLevel, onLevelChange }: LevelSelect
 
   return (
     <div className="p-4 border-b">
-      <h2 className="text-sm font-medium text-gray-500 mb-2">Select Level:</h2>
+      <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Level:</h2>
       <div className="flex flex-wrap gap-2">
         {levels.map((level) => (
           <Button

@@ -39,7 +39,7 @@ export default function Leaderboard({ entries, currentLevel, onClose }: Leaderbo
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 text-black dark:text-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-500" />
@@ -76,7 +76,7 @@ export default function Leaderboard({ entries, currentLevel, onClose }: Leaderbo
                   </div>
                   <div className="flex-1 ml-2">
                     <div className="font-medium">{entry.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
                       {formatTime(entry.time)} • {new Date(entry.date).toLocaleDateString()}
                     </div>
                   </div>
@@ -84,7 +84,7 @@ export default function Leaderboard({ entries, currentLevel, onClose }: Leaderbo
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500 flex flex-col items-center gap-2">
+            <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
               <Users className="w-8 h-8 opacity-50" />
               <p>No scores yet for this level</p>
               <p className="text-sm">Be the first to complete it!</p>
