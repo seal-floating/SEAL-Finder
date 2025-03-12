@@ -112,14 +112,37 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         }
       }
       
+      // Try direct API endpoint first
+      try {
+        console.log('Attempting to use direct Redis API endpoint for leaderboard...');
+        const directResponse = await fetch('/api/leaderboard/direct');
+        
+        if (directResponse.ok) {
+          const directData = await directResponse.json();
+          console.log('Direct Redis API response:', directData);
+          
+          if (directData.entries && directData.entries.length > 0) {
+            console.log(`Leaderboard loaded with ${directData.entries.length} entries from direct API`);
+            setTelegramLeaderboard(directData.entries);
+            return;
+          } else {
+            console.log('No entries found in direct Redis API, falling back to getGameHighScores');
+          }
+        } else {
+          console.warn('Direct Redis API failed, falling back to getGameHighScores');
+        }
+      } catch (directError) {
+        console.warn('Error using direct Redis API:', directError);
+      }
+      
       // Fall back to the regular method which will handle both Telegram API and Redis fallbacks
       const highScores = await getGameHighScores();
       
       if (highScores && highScores.length > 0) {
-        console.log(`Leaderboard loaded with ${highScores.length} entries`);
+        console.log(`Leaderboard loaded with ${highScores.length} entries from getGameHighScores`);
         setTelegramLeaderboard(highScores);
       } else {
-        console.log('Leaderboard is empty');
+        console.log('Leaderboard is empty from all sources');
         setTelegramLeaderboard([]);
       }
     } catch (err) {
@@ -204,14 +227,27 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
             <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
               <Users className="w-8 h-8 opacity-50" />
               <p>No scores yet</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchTelegramLeaderboard}
-                className="mt-2"
-              >
-                Refresh
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchTelegramLeaderboard}
+                >
+                  Refresh
+                </Button>
+                
+                {/* Add a Debug button that will open the leaderboard debug API in a new tab */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-purple-600 border-purple-400 hover:bg-purple-50"
+                  onClick={() => {
+                    window.open('/api/leaderboard-debug', '_blank');
+                  }}
+                >
+                  Debug
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="divide-y">
