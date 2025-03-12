@@ -1,17 +1,16 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Play, Trophy, HelpCircle, MessageCircle } from "lucide-react"
+import { Play, Trophy, HelpCircle } from "lucide-react"
 import SealImage from "./seal-image"
 
 interface MainMenuProps {
   onPlay: () => void
   onRanking: () => void
   onHowToPlay: () => void
-  onTelegramLeaderboard?: () => void
 }
 
-export default function MainMenu({ onPlay, onRanking, onHowToPlay, onTelegramLeaderboard }: MainMenuProps) {
+export default function MainMenu({ onPlay, onRanking, onHowToPlay }: MainMenuProps) {
   return (
     <div className="flex flex-col items-center p-6 space-y-6">
       <div className="text-center mb-4">
@@ -38,17 +37,6 @@ export default function MainMenu({ onPlay, onRanking, onHowToPlay, onTelegramLea
           <Trophy className="w-5 h-5" />
           Leaderboard
         </Button>
-
-        {onTelegramLeaderboard && (
-          <Button
-            variant="outline"
-            className="w-full h-12 text-lg flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
-            onClick={onTelegramLeaderboard}
-          >
-            <MessageCircle className="w-5 h-5" />
-            텔레그램 리더보드
-          </Button>
-        )}
 
         <Button
           variant="ghost"

@@ -22,7 +22,7 @@ export default function SeasonsAdminPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 새 시즌 폼 상태
+  // New season form state
   const [newSeason, setNewSeason] = useState<{
     name: string;
     startDate: string;
@@ -35,7 +35,7 @@ export default function SeasonsAdminPage() {
     isActive: false,
   });
 
-  // 시즌 목록 가져오기
+  // Fetch seasons list
   const fetchSeasons = async () => {
     setLoading(true);
     try {
@@ -47,8 +47,8 @@ export default function SeasonsAdminPage() {
       }
       setError(null);
     } catch (err) {
-      console.error('시즌 목록을 가져오는 중 오류 발생:', err);
-      setError('시즌 정보를 불러올 수 없습니다.');
+      console.error('Error fetching seasons:', err);
+      setError('Unable to load season data');
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function SeasonsAdminPage() {
     fetchSeasons();
   }, []);
 
-  // 새 시즌 생성
+  // Create new season
   const handleCreateSeason = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -74,9 +74,9 @@ export default function SeasonsAdminPage() {
       const data = await response.json();
       
       if (response.ok) {
-        toast.success(`시즌이 성공적으로 생성되었습니다. (ID: ${data.seasonId})`);
+        toast.success(`Season created successfully (ID: ${data.seasonId})`);
         fetchSeasons();
-        // 폼 초기화
+        // Reset form
         setNewSeason({
           name: '',
           startDate: new Date().toISOString().split('T')[0],
@@ -84,15 +84,15 @@ export default function SeasonsAdminPage() {
           isActive: false,
         });
       } else {
-        toast.error(`시즌 생성 실패: ${data.error || '알 수 없는 오류'}`);
+        toast.error(`Failed to create season: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('시즌 생성 중 오류 발생:', err);
-      toast.error('시즌 생성 중 오류가 발생했습니다.');
+      console.error('Error creating season:', err);
+      toast.error('An error occurred while creating the season');
     }
   };
 
-  // 시즌 활성화/비활성화
+  // Toggle season active state
   const handleToggleActive = async (seasonId: string, currentActive: boolean) => {
     try {
       const response = await fetch('/api/seasons', {
@@ -109,21 +109,21 @@ export default function SeasonsAdminPage() {
       const data = await response.json();
       
       if (response.ok) {
-        toast.success(`시즌이 ${!currentActive ? '활성화' : '비활성화'}되었습니다.`);
+        toast.success(`Season ${!currentActive ? 'activated' : 'deactivated'} successfully`);
         fetchSeasons();
       } else {
-        toast.error(`시즌 업데이트 실패: ${data.error || '알 수 없는 오류'}`);
+        toast.error(`Failed to update season: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('시즌 업데이트 중 오류 발생:', err);
-      toast.error('시즌 업데이트 중 오류가 발생했습니다.');
+      console.error('Error updating season:', err);
+      toast.error('An error occurred while updating the season');
     }
   };
 
-  // 날짜 포맷팅
+  // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -133,29 +133,29 @@ export default function SeasonsAdminPage() {
   return (
     <main className="flex min-h-screen flex-col p-6 bg-emerald-50 dark:bg-emerald-950">
       <div className="max-w-6xl mx-auto w-full">
-        <h1 className="text-3xl font-bold mb-6 text-emerald-800 dark:text-emerald-200">시즌 관리</h1>
+        <h1 className="text-3xl font-bold mb-6 text-emerald-800 dark:text-emerald-200">Season Management</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* 시즌 생성 폼 */}
+          {/* Season creation form */}
           <Card className="md:col-span-1">
             <CardHeader>
-              <CardTitle>새 시즌 생성</CardTitle>
+              <CardTitle>Create New Season</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateSeason} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">시즌 이름</Label>
+                  <Label htmlFor="name">Season Name</Label>
                   <Input
                     id="name"
                     value={newSeason.name}
                     onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
-                    placeholder="예: 2024 봄 시즌"
+                    placeholder="e.g. Spring 2024"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">시작일</Label>
+                  <Label htmlFor="startDate">Start Date</Label>
                   <Input
                     id="startDate"
                     type="date"
@@ -166,7 +166,7 @@ export default function SeasonsAdminPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">종료일</Label>
+                  <Label htmlFor="endDate">End Date</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -182,34 +182,34 @@ export default function SeasonsAdminPage() {
                     checked={newSeason.isActive}
                     onCheckedChange={(checked) => setNewSeason({ ...newSeason, isActive: checked })}
                   />
-                  <Label htmlFor="isActive">활성화</Label>
+                  <Label htmlFor="isActive">Active</Label>
                 </div>
                 
-                <Button type="submit" className="w-full">시즌 생성</Button>
+                <Button type="submit" className="w-full">Create Season</Button>
               </form>
             </CardContent>
           </Card>
           
-          {/* 시즌 목록 */}
+          {/* Seasons list */}
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>시즌 목록</CardTitle>
+              <CardTitle>Seasons List</CardTitle>
             </CardHeader>
             <CardContent>
               {error ? (
                 <div className="text-center text-red-500 py-4">{error}</div>
               ) : loading ? (
-                <div className="text-center py-4">로딩 중...</div>
+                <div className="text-center py-4">Loading...</div>
               ) : seasons.length === 0 ? (
-                <div className="text-center py-4">등록된 시즌이 없습니다.</div>
+                <div className="text-center py-4">No seasons found</div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>이름</TableHead>
-                      <TableHead>기간</TableHead>
-                      <TableHead>상태</TableHead>
-                      <TableHead className="text-right">관리</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -225,7 +225,7 @@ export default function SeasonsAdminPage() {
                               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                               : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
                           }`}>
-                            {season.isActive ? '활성' : '비활성'}
+                            {season.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -234,7 +234,7 @@ export default function SeasonsAdminPage() {
                             size="sm"
                             onClick={() => handleToggleActive(season.id, season.isActive)}
                           >
-                            {season.isActive ? '비활성화' : '활성화'}
+                            {season.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
                         </TableCell>
                       </TableRow>

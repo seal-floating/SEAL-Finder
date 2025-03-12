@@ -1,4 +1,4 @@
-// 텔레그램 웹앱 타입 정의
+// Telegram WebApp type definitions
 declare global {
   interface Window {
     Telegram: {
@@ -43,7 +43,7 @@ declare global {
   }
 }
 
-// 텔레그램 사용자 정보 가져오기
+// Get Telegram user information
 export function getTelegramUser() {
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
     const { user } = window.Telegram.WebApp.initDataUnsafe;
@@ -58,17 +58,17 @@ export function getTelegramUser() {
   return null;
 }
 
-// 텔레그램 웹앱이 사용 가능한지 확인
+// Check if Telegram WebApp is available
 export function isTelegramWebAppAvailable() {
   return typeof window !== 'undefined' && !!window.Telegram?.WebApp;
 }
 
-// 게임 점수 제출
+// Submit game score
 export async function submitGameScore(score: number) {
   const user = getTelegramUser();
   
   if (!user) {
-    throw new Error('텔레그램 사용자 정보를 찾을 수 없습니다.');
+    throw new Error('Telegram user information not found');
   }
   
   try {
@@ -84,23 +84,23 @@ export async function submitGameScore(score: number) {
     });
     
     if (!response.ok) {
-      throw new Error('점수 제출 중 오류가 발생했습니다.');
+      throw new Error('Error submitting score');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('점수 제출 중 오류:', error);
+    console.error('Error submitting score:', error);
     throw error;
   }
 }
 
-// 텔레그램 웹앱 초기화
+// Initialize Telegram WebApp
 export function initTelegramWebApp() {
   if (isTelegramWebAppAvailable()) {
-    // 웹앱 준비 완료 알림
+    // Notify WebApp is ready
     window.Telegram.WebApp.ready();
     
-    // 웹앱 확장 (전체 화면)
+    // Expand WebApp (full screen)
     window.Telegram.WebApp.expand();
   }
 } 

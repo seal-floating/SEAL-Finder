@@ -42,14 +42,14 @@ export default function GameOver({
   // Calculate time used (totalTime - remainingTime)
   const timeUsed = totalTime - remainingTime
   
-  // 게임 점수 계산 (난이도에 따라 가중치 부여)
+  // Calculate game score (with difficulty multiplier)
   const calculateGameScore = () => {
     if (gameState !== "won") return 0;
     
-    // 기본 점수: 남은 시간 * 10
+    // Base score: remaining time * 10
     let baseScore = remainingTime * 10;
     
-    // 난이도 가중치
+    // Difficulty multiplier
     const difficultyMultiplier = {
       easy: 1,
       medium: 2,
@@ -75,14 +75,14 @@ export default function GameOver({
       const rankIndex = levelScores.findIndex((e) => e.id === entry.id)
       setRank(rankIndex !== -1 ? rankIndex + 1 : null)
       
-      // 텔레그램 점수 자동 제출 (텔레그램 웹앱에서 실행 중인 경우)
+      // Auto-submit Telegram score (if running in Telegram WebApp)
       if (isTelegramAvailable) {
         handleSubmitTelegramScore();
       }
     }
   }, [gameState, level, timeUsed, sealsFound, totalSeals])
 
-  // 텔레그램 점수 제출
+  // Submit score to Telegram
   const handleSubmitTelegramScore = async () => {
     if (!isTelegramAvailable || gameState !== "won") return;
     
@@ -94,12 +94,12 @@ export default function GameOver({
       if (result.success) {
         setTelegramScoreSubmitted(true);
         toast.success(result.newHighScore 
-          ? '새로운 최고 점수가 등록되었습니다!' 
-          : '점수가 제출되었습니다.');
+          ? 'New high score registered!' 
+          : 'Score submitted successfully.');
       }
     } catch (error) {
-      console.error('텔레그램 점수 제출 오류:', error);
-      toast.error('점수 제출 중 오류가 발생했습니다.');
+      console.error('Error submitting Telegram score:', error);
+      toast.error('Error submitting score.');
     } finally {
       setSubmittingScore(false);
     }
@@ -176,7 +176,7 @@ export default function GameOver({
             >
               <MessageCircle className="w-5 h-5 mb-1" />
               <span className="text-xs">
-                {submittingScore ? '제출 중...' : telegramScoreSubmitted ? '제출 완료' : '텔레그램 점수 제출'}
+                {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : 'Submit Score'}
               </span>
             </Button>
           )}

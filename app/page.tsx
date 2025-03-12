@@ -172,10 +172,6 @@ export default function Home() {
     setCurrentScreen("howToPlay")
   }
 
-  const handleTelegramLeaderboardClick = () => {
-    window.location.href = '/telegram-leaderboard'
-  }
-
   const handleBackToMenu = () => {
     // Clear any running game
     if (timerInterval) clearInterval(timerInterval)
@@ -204,7 +200,6 @@ export default function Home() {
           onPlay={handlePlayClick} 
           onRanking={handleRankingClick} 
           onHowToPlay={handleHowToPlayClick}
-          onTelegramLeaderboard={handleTelegramLeaderboardClick}
         />
 
       case "howToPlay":

@@ -12,8 +12,8 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   const navItems = [
-    { name: '시즌 관리', path: '/admin/seasons' },
-    // 추후 다른 관리 메뉴 추가 가능
+    { name: 'Season Management', path: '/admin/seasons' },
+    // More admin menu items can be added here
   ];
 
   return (
@@ -26,18 +26,18 @@ export default function AdminLayout({
               <Link href="/" className="text-xl font-bold">
                 Find the SEAL
               </Link>
-              <span className="text-sm bg-emerald-700 px-2 py-0.5 rounded">관리자</span>
+              <span className="text-sm bg-emerald-700 px-2 py-0.5 rounded">Admin</span>
             </div>
             <nav>
               <Link href="/" className="hover:underline">
-                메인으로 돌아가기
+                Back to Main
               </Link>
             </nav>
           </div>
         </header>
 
         <div className="flex flex-1">
-          {/* 사이드바 */}
+          {/* Sidebar */}
           <aside className="w-64 bg-emerald-700 text-white p-4">
             <nav className="space-y-1">
               {navItems.map((item) => (
@@ -56,7 +56,7 @@ export default function AdminLayout({
             </nav>
           </aside>
 
-          {/* 메인 콘텐츠 */}
+          {/* Main content */}
           <div className="flex-1">{children}</div>
         </div>
       </div>
