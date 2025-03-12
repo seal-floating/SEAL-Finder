@@ -82,7 +82,9 @@ export async function POST(request: NextRequest) {
       
       // Import Redis functions and store the score there
       try {
-        const { storeScore } = require('../../../lib/redis');
+        // Import using dynamic import for Next.js compatibility
+        const redisModule = await import('@/lib/redis');
+        const storeScore = redisModule.storeScore;
         
         // Store score in Redis
         const result = await storeScore(

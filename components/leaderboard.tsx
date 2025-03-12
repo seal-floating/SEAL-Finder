@@ -120,40 +120,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         setTelegramLeaderboard(highScores);
       } else {
         console.log('Leaderboard is empty');
-        
-        // If in development mode and we got no data, use a mock leaderboard for testing
-        if (isDevelopment()) {
-          console.log('Using mock leaderboard in development mode');
-          const MOCK_ENTRIES = [
-            {
-              rank: 1,
-              telegramId: 'dev-user-123',
-              username: 'dev_user',
-              firstName: 'Dev',
-              lastName: 'User',
-              score: 5000
-            },
-            {
-              rank: 2,
-              telegramId: 'dev-user-456',
-              username: 'test_user',
-              firstName: 'Test',
-              lastName: 'User',
-              score: 4500
-            },
-            {
-              rank: 3,
-              telegramId: 'dev-user-789',
-              username: 'another_user',
-              firstName: 'Another',
-              lastName: 'User',
-              score: 4000
-            }
-          ];
-          setTelegramLeaderboard(MOCK_ENTRIES);
-        } else {
-          setTelegramLeaderboard([]);
-        }
+        setTelegramLeaderboard([]);
       }
     } catch (err) {
       console.error('Error fetching leaderboard:', err)

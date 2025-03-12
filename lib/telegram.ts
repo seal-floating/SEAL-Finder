@@ -82,32 +82,7 @@ const MOCK_USER = {
   photoUrl: ''
 };
 
-const MOCK_LEADERBOARD = [
-  {
-    rank: 1,
-    telegramId: 'dev-user-123',
-    username: 'dev_user',
-    firstName: 'Dev',
-    lastName: 'User',
-    score: 5000
-  },
-  {
-    rank: 2,
-    telegramId: 'dev-user-456',
-    username: 'test_user',
-    firstName: 'Test',
-    lastName: 'User',
-    score: 4500
-  },
-  {
-    rank: 3,
-    telegramId: 'dev-user-789',
-    username: 'another_user',
-    firstName: 'Another',
-    lastName: 'User',
-    score: 4000
-  }
-];
+// Empty constant for development mode
 
 // Create a mock user for development
 const createMockUser = () => {
@@ -418,9 +393,9 @@ export async function submitGameScore(score: number) {
 
 // Get high scores from Telegram GameScore API
 export async function getGameHighScores() {
-  // In development mode, we now still use Redis if available, with mock data as a fallback
+  // In development mode, we still try to use Redis
   if (isDevelopment()) {
-    console.log('Development mode: Checking Redis first before using mock leaderboard data');
+    console.log('Development mode: Checking Redis first for leaderboard data');
     
     // Try Redis first, even in development
     try {
@@ -428,20 +403,16 @@ export async function getGameHighScores() {
       const redisLeaderboard = await getLeaderboard();
       
       if (redisLeaderboard && redisLeaderboard.length > 0) {
-        console.log(`Found ${redisLeaderboard.length} real entries in Redis during development`);
+        console.log(`Found ${redisLeaderboard.length} entries in Redis during development`);
         return redisLeaderboard;
       }
     } catch (redisError) {
       console.warn('Development: Redis check failed:', redisError);
     }
     
-    // If no Redis data, use mock data in dev mode
-    console.log('Development mode: Using mock leaderboard data');
-    
-    // Simulate API response delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return MOCK_LEADERBOARD;
+    // If no Redis data in development, just return empty array
+    console.log('Development mode: No data found in Redis, returning empty leaderboard');
+    return [];
   }
   
   // Get user information
@@ -568,10 +539,10 @@ export async function getGameHighScores() {
   } catch (error) {
     console.error('Error getting high scores:', error);
     
-    // In development, return mock data even if there's an error
+    // In development, return empty array even if there's an error
     if (isDevelopment()) {
-      console.log('Returning mock leaderboard data due to error in development mode');
-      return MOCK_LEADERBOARD;
+      console.log('Returning empty array due to error in development mode');
+      return [];
     }
     
     throw error;

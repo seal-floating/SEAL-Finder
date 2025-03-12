@@ -108,6 +108,17 @@ export async function getAllSeasons() {
 export async function storeScore(telegramId: string, username: string, firstName: string, lastName: string, score: number) {
   console.log(`Attempting to store score ${score} for user ${telegramId} in Redis`);
   
+  // Safety check for required parameters
+  if (!telegramId) {
+    console.error('Cannot store score: Missing telegramId');
+    return false;
+  }
+  
+  if (typeof score !== 'number' || isNaN(score)) {
+    console.error('Cannot store score: Invalid score value', score);
+    return false;
+  }
+  
   try {
     // First verify Redis connection
     const isConnected = await verifyRedisConnection();
@@ -182,9 +193,9 @@ export async function getLeaderboard(limit = 100) {
     if (!isConnected) {
       console.warn('Redis connection failed when trying to get leaderboard');
       
-      // Return mock data for testing
-      console.log('Returning mock leaderboard data due to Redis connection failure');
-      return MOCK_LEADERBOARD;
+      // Return empty array instead of mock data
+      console.log('Returning empty array due to Redis connection failure');
+      return [];
     }
     
     const seasonId = await getActiveSeasonId();
@@ -247,36 +258,8 @@ export async function getLeaderboard(limit = 100) {
   } catch (error) {
     console.error('Error getting leaderboard from Redis:', error);
     
-    // Return mock data for testing
-    console.log('Returning mock leaderboard data due to Redis error');
-    return MOCK_LEADERBOARD;
+    // Return empty array instead of mock data
+    console.log('Returning empty array due to Redis error');
+    return [];
   }
-}
-
-// Mock leaderboard data for testing when Redis fails
-const MOCK_LEADERBOARD = [
-  {
-    rank: 1,
-    telegramId: 'dev-user-123',
-    username: 'dev_user',
-    firstName: 'Dev',
-    lastName: 'User',
-    score: 5000
-  },
-  {
-    rank: 2,
-    telegramId: 'dev-user-456',
-    username: 'test_user',
-    firstName: 'Test',
-    lastName: 'User',
-    score: 4500
-  },
-  {
-    rank: 3,
-    telegramId: 'dev-user-789',
-    username: 'another_user',
-    firstName: 'Another',
-    lastName: 'User',
-    score: 4000
-  }
-]; 
+} 
