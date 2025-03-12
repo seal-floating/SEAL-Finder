@@ -68,8 +68,11 @@ export async function submitGameScore(score: number) {
   const user = getTelegramUser();
   
   if (!user) {
+    console.error('Telegram user information not found. WebApp available:', isTelegramWebAppAvailable());
     throw new Error('Telegram user information not found');
   }
+  
+  console.log('Submitting score:', score, 'for user:', user);
   
   try {
     const response = await fetch('/api/scores', {
@@ -83,11 +86,28 @@ export async function submitGameScore(score: number) {
       }),
     });
     
-    if (!response.ok) {
-      throw new Error('Error submitting score');
+    // Log the response status
+    console.log('Score submission response status:', response.status);
+    
+    // Get the response text for debugging
+    const responseText = await response.text();
+    console.log('Score submission response text:', responseText);
+    
+    // Parse the response if it's JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse response as JSON:', e);
+      throw new Error('Invalid response format');
     }
     
-    return await response.json();
+    if (!response.ok) {
+      console.error('Error submitting score. Status:', response.status, 'Response:', responseData);
+      throw new Error(responseData?.error || 'Error submitting score');
+    }
+    
+    return responseData;
   } catch (error) {
     console.error('Error submitting score:', error);
     throw error;

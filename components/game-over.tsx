@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react"
 import type { GameState, GameLevel } from "@/types/game"
 import { Button } from "@/components/ui/button"
-import { saveScore, getLeaderboard } from "@/lib/leaderboard-service"
 import { formatTime } from "@/lib/utils"
-import type { LeaderboardEntry } from "@/components/leaderboard"
 import { Home, RotateCcw, Trophy, MessageCircle } from "lucide-react"
 import { isTelegramWebAppAvailable, submitGameScore } from "@/lib/telegram"
 import { toast } from "sonner"
@@ -33,8 +31,6 @@ export default function GameOver({
   onShowLeaderboard,
   onBackToMenu,
 }: GameOverProps) {
-  const [rank, setRank] = useState<number | null>(null)
-  const [savedEntry, setSavedEntry] = useState<LeaderboardEntry | null>(null)
   const [telegramScoreSubmitted, setTelegramScoreSubmitted] = useState(false)
   const [submittingScore, setSubmittingScore] = useState(false)
   const isTelegramAvailable = typeof window !== 'undefined' && isTelegramWebAppAvailable()
@@ -60,27 +56,11 @@ export default function GameOver({
   };
 
   useEffect(() => {
-    // Only save score and calculate rank if the game was won
-    if (gameState === "won") {
-      // Save the score
-      const entry = saveScore(level, timeUsed, sealsFound, totalSeals)
-      setSavedEntry(entry)
-
-      // Calculate rank
-      const leaderboard = getLeaderboard()
-      const levelScores = leaderboard
-        .filter((e) => e.level === level && e.sealsFound === e.totalSeals)
-        .sort((a, b) => a.time - b.time)
-
-      const rankIndex = levelScores.findIndex((e) => e.id === entry.id)
-      setRank(rankIndex !== -1 ? rankIndex + 1 : null)
-      
-      // Auto-submit Telegram score (if running in Telegram WebApp)
-      if (isTelegramAvailable) {
-        handleSubmitTelegramScore();
-      }
+    // Auto-submit Telegram score (if running in Telegram WebApp)
+    if (gameState === "won" && isTelegramAvailable) {
+      handleSubmitTelegramScore();
     }
-  }, [gameState, level, timeUsed, sealsFound, totalSeals])
+  }, [gameState]);
 
   // Submit score to Telegram
   const handleSubmitTelegramScore = async () => {
@@ -89,6 +69,7 @@ export default function GameOver({
     setSubmittingScore(true);
     try {
       const score = calculateGameScore();
+      console.log('Attempting to submit score:', score);
       const result = await submitGameScore(score);
       
       if (result.success) {
@@ -96,10 +77,12 @@ export default function GameOver({
         toast.success(result.newHighScore 
           ? 'New high score registered!' 
           : 'Score submitted successfully.');
+      } else {
+        toast.error('Failed to submit score: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error submitting Telegram score:', error);
-      toast.error('Error submitting score.');
+      toast.error('Error submitting score. Please try again.');
     } finally {
       setSubmittingScore(false);
     }
@@ -135,12 +118,6 @@ export default function GameOver({
           <p className="mb-2">{remainingTime === 0 ? "You ran out of time!" : "You hit a failure!"}</p>
         )}
 
-        {gameState === "won" && rank !== null && (
-          <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md mb-6">
-            <p className="font-medium text-blue-800 dark:text-blue-300">{rank <= 3 ? `🏆 Amazing! You're ranked #${rank}` : `Your rank: #${rank}`}</p>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Button
             onClick={onBackToMenu}
@@ -164,7 +141,7 @@ export default function GameOver({
             className="flex flex-col items-center justify-center py-2 h-auto"
           >
             <Trophy className="w-5 h-5 mb-1" />
-            <span className="text-xs">Ranking</span>
+            <span className="text-xs">Leaderboard</span>
           </Button>
           
           {isTelegramAvailable && gameState === "won" && (

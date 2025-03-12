@@ -5,12 +5,12 @@ import GameBoard from "@/components/game-board"
 import GameHeader from "@/components/game-header"
 import GameOver from "@/components/game-over"
 import LevelSelect from "@/components/level-select"
-import Leaderboard, { type LeaderboardEntry } from "@/components/leaderboard"
+import Leaderboard from "@/components/leaderboard"
 import MainMenu from "@/components/main-menu"
 import HowToPlay from "@/components/how-to-play"
 import type { Cell, GameState, GameLevel } from "@/types/game"
 import { generateBoard, LEVEL_CONFIGS } from "@/lib/game-utils"
-import { getLeaderboard, getTelegramWebApp } from "@/lib/leaderboard-service"
+import { getTelegramWebApp } from "@/lib/leaderboard-service"
 import Script from "next/script"
 import FloatingMenuButton from "@/components/floating-menu-button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -34,7 +34,6 @@ export default function Home() {
 
   // Leaderboard state
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
 
   // Telegram state
   const [telegramReady, setTelegramReady] = useState(false)
@@ -111,8 +110,6 @@ export default function Home() {
 
   // Load leaderboard data
   const loadLeaderboard = () => {
-    const entries = getLeaderboard()
-    setLeaderboardEntries(entries)
     setShowLeaderboard(true)
   }
 
@@ -259,7 +256,7 @@ export default function Home() {
       </main>
 
       {showLeaderboard && (
-        <Leaderboard entries={leaderboardEntries} currentLevel={level} onClose={() => setShowLeaderboard(false)} />
+        <Leaderboard onClose={() => setShowLeaderboard(false)} />
       )}
       
       <ThemeToggle />
