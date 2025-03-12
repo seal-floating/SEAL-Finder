@@ -43,6 +43,29 @@ declare global {
   }
 }
 
+// Check if we're in development mode
+const isDevelopment = () => {
+  // Check if we're in a development environment
+  // This works in both client and server contexts
+  return typeof window !== 'undefined' 
+    ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    : process.env.NODE_ENV === 'development';
+};
+
+// Create a mock user for development
+const createMockUser = () => {
+  // Use a fixed ID for development to maintain consistency
+  const mockId = 'dev-user-123';
+  console.log('Creating mock Telegram user for development:', mockId);
+  return {
+    telegramId: mockId,
+    username: 'dev_user',
+    firstName: 'Dev',
+    lastName: 'User',
+    photoUrl: ''
+  };
+};
+
 // Get Telegram user information
 export function getTelegramUser() {
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
@@ -57,15 +80,8 @@ export function getTelegramUser() {
   }
   
   // For testing outside of Telegram, create a mock user
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Using mock Telegram user for development');
-    return {
-      telegramId: 'dev-user-' + Math.floor(Math.random() * 1000),
-      username: 'dev_user',
-      firstName: 'Dev',
-      lastName: 'User',
-      photoUrl: ''
-    };
+  if (isDevelopment()) {
+    return createMockUser();
   }
   
   return null;
@@ -73,6 +89,10 @@ export function getTelegramUser() {
 
 // Check if Telegram WebApp is available
 export function isTelegramWebAppAvailable() {
+  // In development, always return true for testing purposes
+  if (isDevelopment()) {
+    return true;
+  }
   return typeof window !== 'undefined' && !!window.Telegram?.WebApp;
 }
 
@@ -84,15 +104,8 @@ export async function submitGameScore(score: number) {
     console.error('Telegram user information not found. WebApp available:', isTelegramWebAppAvailable());
     
     // For development or testing, create a mock user
-    if (process.env.NODE_ENV === 'development') {
-      user = {
-        telegramId: 'dev-user-' + Math.floor(Math.random() * 1000),
-        username: 'dev_user',
-        firstName: 'Dev',
-        lastName: 'User',
-        photoUrl: ''
-      };
-      console.log('Created mock user for development:', user);
+    if (isDevelopment()) {
+      user = createMockUser();
     } else {
       throw new Error('Telegram user information not found');
     }
@@ -112,7 +125,8 @@ export async function submitGameScore(score: number) {
       body: JSON.stringify({
         ...user,
         score,
-        timestamp
+        timestamp,
+        isDevelopment: isDevelopment()
       }),
     });
     
@@ -146,15 +160,18 @@ export async function submitGameScore(score: number) {
 
 // Initialize Telegram WebApp
 export function initTelegramWebApp() {
-  if (isTelegramWebAppAvailable()) {
-    // Notify WebApp is ready
-    window.Telegram.WebApp.ready();
-    
-    // Expand WebApp (full screen)
-    window.Telegram.WebApp.expand();
-    
-    console.log('Telegram WebApp initialized successfully');
+  if (isTelegramWebAppAvailable() && !isDevelopment()) {
+    // Only call Telegram WebApp methods if it's actually available
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      // Notify WebApp is ready
+      window.Telegram.WebApp.ready();
+      
+      // Expand WebApp (full screen)
+      window.Telegram.WebApp.expand();
+      
+      console.log('Telegram WebApp initialized successfully');
+    }
   } else {
-    console.log('Telegram WebApp not available');
+    console.log('Telegram WebApp not available or in development mode');
   }
 } 

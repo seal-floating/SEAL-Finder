@@ -6,6 +6,15 @@ export const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN || '',
 });
 
+// Default season data
+const DEFAULT_SEASON = {
+  id: 'season1',
+  name: 'Season 1',
+  startDate: new Date().toISOString(),
+  endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+  isActive: true
+};
+
 // Verify Redis connection
 export async function verifyRedisConnection() {
   try {
@@ -26,39 +35,70 @@ export async function getActiveSeasonId() {
     const isConnected = await verifyRedisConnection();
     if (!isConnected) {
       console.warn('Using default season ID due to Redis connection failure');
-      return 'season1';
+      return DEFAULT_SEASON.id;
     }
     
     const activeSeasons = await redis.hgetall('activeSeasons');
     console.log('Active seasons from Redis:', activeSeasons);
     
     if (!activeSeasons || Object.keys(activeSeasons).length === 0) {
-      console.log('No active seasons found, using default');
+      console.log('No active seasons found, creating default season');
       
       // Try to create a default season if none exists
       try {
-        const defaultSeason = {
-          id: 'season1',
-          name: 'Season 1',
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
-          isActive: true
-        };
+        await redis.hset('activeSeasons', { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) });
+        await redis.hset('seasons', { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) });
+        console.log('Created default season successfully');
         
-        await redis.hset('activeSeasons', { 'season1': JSON.stringify(defaultSeason) });
-        await redis.hset('seasons', { 'season1': JSON.stringify(defaultSeason) });
-        console.log('Created default season');
+        // Verify the season was created
+        const verifySeasons = await redis.hgetall('activeSeasons');
+        if (!verifySeasons || Object.keys(verifySeasons).length === 0) {
+          console.warn('Failed to verify default season creation, using default ID');
+          return DEFAULT_SEASON.id;
+        }
       } catch (createError) {
         console.error('Failed to create default season:', createError);
+        return DEFAULT_SEASON.id;
       }
       
       // Default season ID
-      return 'season1';
+      return DEFAULT_SEASON.id;
     }
     
     return Object.keys(activeSeasons)[0];
   } catch (error) {
     console.error('Error getting active season ID:', error);
-    return 'season1';
+    return DEFAULT_SEASON.id;
+  }
+}
+
+// Get all seasons (for development/testing when Redis is not available)
+export async function getAllSeasons() {
+  try {
+    const isConnected = await verifyRedisConnection();
+    if (!isConnected) {
+      console.warn('Using mock seasons data due to Redis connection failure');
+      return { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) };
+    }
+    
+    const seasons = await redis.hgetall('seasons');
+    if (!seasons || Object.keys(seasons).length === 0) {
+      // Create default season if none exists
+      const defaultSeasons = { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) };
+      try {
+        await redis.hset('seasons', defaultSeasons);
+        await redis.hset('activeSeasons', { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) });
+        console.log('Created default season in getAllSeasons');
+        return defaultSeasons;
+      } catch (error) {
+        console.error('Failed to create default season in getAllSeasons:', error);
+        return defaultSeasons;
+      }
+    }
+    
+    return seasons;
+  } catch (error) {
+    console.error('Error getting all seasons:', error);
+    return { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) };
   }
 } 

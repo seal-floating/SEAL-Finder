@@ -29,6 +29,24 @@ interface LeaderboardProps {
   onClose: () => void
 }
 
+// Check if we're in development mode
+const isDevelopment = () => {
+  // Check if we're in a development environment
+  // This works in both client and server contexts
+  return typeof window !== 'undefined' 
+    ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    : process.env.NODE_ENV === 'development';
+};
+
+// Default season for when API fails
+const DEFAULT_SEASON: Season = {
+  id: 'season1',
+  name: 'Season 1',
+  startDate: new Date().toISOString(),
+  endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+  isActive: true
+};
+
 export default function Leaderboard({ onClose }: LeaderboardProps) {
   // Telegram leaderboard state
   const [telegramLeaderboard, setTelegramLeaderboard] = useState<TelegramLeaderboardEntry[]>([])
@@ -36,21 +54,16 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [selectedSeason, setSelectedSeason] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
-  const isTelegramAvailable = typeof window !== 'undefined' && isTelegramWebAppAvailable()
+  const isTelegramAvailable = typeof window !== 'undefined' && (isTelegramWebAppAvailable() || isDevelopment())
   
   // Fetch seasons on component mount
   useEffect(() => {
-    if (isTelegramAvailable) {
-      fetchSeasons()
-    } else {
-      setLoading(false)
-      setError('Telegram connection is required for leaderboard')
-    }
+    fetchSeasons()
   }, [])
   
   // Fetch telegram leaderboard data when season is selected
   useEffect(() => {
-    if (selectedSeason && isTelegramAvailable) {
+    if (selectedSeason) {
       fetchTelegramLeaderboard()
     }
   }, [selectedSeason])
@@ -72,12 +85,21 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
           setSelectedSeason(data.seasons[0].id)
         }
       } else {
-        setError('No seasons available')
-        setLoading(false)
+        console.warn('No seasons available from API, using default season')
+        // Use default season when API returns no seasons
+        const defaultSeasons = [DEFAULT_SEASON]
+        setSeasons(defaultSeasons)
+        setSelectedSeason(DEFAULT_SEASON.id)
+        setError(null)
       }
     } catch (err) {
       console.error('Error fetching seasons:', err)
-      setError('Unable to load season data')
+      // Use default season when API fails
+      const defaultSeasons = [DEFAULT_SEASON]
+      setSeasons(defaultSeasons)
+      setSelectedSeason(DEFAULT_SEASON.id)
+      setError(null)
+    } finally {
       setLoading(false)
     }
   }
@@ -93,12 +115,55 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       
       if (data.leaderboard) {
         setTelegramLeaderboard(data.leaderboard)
+      } else if (isDevelopment()) {
+        // In development, show mock data if API returns empty
+        setTelegramLeaderboard([
+          {
+            rank: 1,
+            telegramId: 'dev-user-123',
+            username: 'dev_user',
+            firstName: 'Dev',
+            lastName: 'User',
+            score: 5000
+          },
+          {
+            rank: 2,
+            telegramId: 'dev-user-456',
+            username: 'test_user',
+            firstName: 'Test',
+            lastName: 'User',
+            score: 4500
+          }
+        ])
       }
       setError(null)
     } catch (err) {
       console.error('Error fetching leaderboard:', err)
-      setError('Unable to load leaderboard data')
-      setTelegramLeaderboard([])
+      if (isDevelopment()) {
+        // In development, show mock data if API fails
+        setTelegramLeaderboard([
+          {
+            rank: 1,
+            telegramId: 'dev-user-123',
+            username: 'dev_user',
+            firstName: 'Dev',
+            lastName: 'User',
+            score: 5000
+          },
+          {
+            rank: 2,
+            telegramId: 'dev-user-456',
+            username: 'test_user',
+            firstName: 'Test',
+            lastName: 'User',
+            score: 4500
+          }
+        ])
+        setError(null)
+      } else {
+        setError('Unable to load leaderboard data')
+        setTelegramLeaderboard([])
+      }
     } finally {
       setLoading(false)
     }
@@ -127,13 +192,16 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
             {isTelegramAvailable && (
               <MessageCircle className="w-4 h-4 text-blue-500" />
             )}
+            {isDevelopment() && !isTelegramWebAppAvailable() && (
+              <span className="text-xs bg-purple-100 text-purple-800 px-1 rounded">Dev Mode</span>
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
         
-        {!isTelegramAvailable ? (
+        {!isTelegramAvailable && !isDevelopment() ? (
           <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
             <MessageCircle className="w-8 h-8 opacity-50" />
             <p>Telegram connection is required</p>
@@ -170,6 +238,16 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
                 <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
                   <Users className="w-8 h-8 opacity-50" />
                   <p>No scores yet for this season</p>
+                  {isDevelopment() && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchTelegramLeaderboard}
+                      className="mt-2"
+                    >
+                      Load Mock Data
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="divide-y">
