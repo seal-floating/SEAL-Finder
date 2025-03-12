@@ -65,6 +65,31 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
     setError(null)
     
     try {
+      // First try to ensure Telegram is initialized
+      const { initTelegramWebApp, getTelegramUser, getGameHighScores } = await import("@/lib/telegram")
+      
+      // Only try to initialize in production mode
+      if (!isDevelopment()) {
+        // Log current user state before fetching
+        const userBefore = getTelegramUser()
+        if (userBefore) {
+          console.log('User already available before leaderboard fetch:', userBefore.telegramId)
+        } else {
+          console.warn('No user available before leaderboard fetch, trying to initialize')
+          
+          // Try to initialize Telegram WebApp
+          await initTelegramWebApp()
+          
+          // Check if we have the user after initialization
+          const userAfter = getTelegramUser()
+          if (userAfter) {
+            console.log('User found after initialization:', userAfter.telegramId)
+          } else {
+            console.warn('User still not found after initialization, will attempt leaderboard fetch anyway')
+          }
+        }
+      }
+      
       // Attempt to get high scores
       const highScores = await getGameHighScores()
       
@@ -83,13 +108,18 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       
       // Use the specific error message if it's descriptive, otherwise use a generic one
       if (errorMessage.includes('Telegram user information not found')) {
-        setError('Unable to load leaderboard: Telegram user information not found')
+        if (isDevelopment()) {
+          setError('Development mode: Telegram user not detected. Try refreshing.')
+        } else {
+          setError('Unable to load leaderboard: Telegram user information not found. Please open this game directly from Telegram.')
+        }
       } else if (errorMessage.includes('Telegram')) {
         setError(errorMessage)
       } else {
         setError('Unable to load leaderboard data')
       }
       
+      // Show an empty leaderboard
       setTelegramLeaderboard([])
     } finally {
       setLoading(false)

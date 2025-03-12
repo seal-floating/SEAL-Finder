@@ -84,11 +84,37 @@ export default function GameOver({
       console.log('Attempting to submit score:', score);
       
       // Import the functions to ensure we're using the latest version
-      const { submitGameScore, initTelegramWebApp } = await import("@/lib/telegram");
+      const { submitGameScore, initTelegramWebApp, getTelegramUser } = await import("@/lib/telegram");
       
       // Try to initialize Telegram WebApp again before submitting score
       if (!isDevelopment()) {
+        // Log environment before initialization
+        console.log('Environment before initialization:', {
+          hostname: window.location.hostname,
+          search: window.location.search,
+          pathname: window.location.pathname,
+          telegramWebAppExists: typeof window.Telegram !== 'undefined' && typeof window.Telegram.WebApp !== 'undefined'
+        });
+        
+        // Check for user ID in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('tgWebAppStartParam');
+        const userId = urlParams.get('user') || urlParams.get('id');
+        
+        if (startParam || userId) {
+          console.log('Found URL parameters in game-over:', { startParam, userId });
+        }
+        
+        // Initialize Telegram WebApp
         await initTelegramWebApp();
+        
+        // Check if we have the user after initialization
+        const user = getTelegramUser();
+        if (user) {
+          console.log('User found before score submission:', user.telegramId);
+        } else {
+          console.warn('User still not found after initialization, will attempt submission anyway');
+        }
       }
       
       const result = await submitGameScore(score);
@@ -113,7 +139,13 @@ export default function GameOver({
       
       // Provide more user-friendly error messages
       if (errorMessage.includes('Telegram user information not found')) {
-        errorMessage = 'Error submitting score: Telegram user information not found';
+        if (isDevelopment()) {
+          // In development, suggest refreshing
+          errorMessage = 'Development mode: Mock Telegram user not detected. Try refreshing the page.';
+        } else {
+          // In production, give more context
+          errorMessage = 'Cannot submit score: Telegram user information not found. Please try opening this game directly from Telegram.';
+        }
       }
       
       setSubmitError(errorMessage);

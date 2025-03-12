@@ -1,6 +1,10 @@
 // Telegram WebApp type definitions
 declare global {
   interface Window {
+    // Track if Telegram WebApp initialization has been completed
+    _telegramWebAppInitialized?: boolean;
+    
+    // Main Telegram WebApp interface
     Telegram: {
       WebApp: {
         initData: string;
@@ -58,6 +62,17 @@ const isDevelopment = () => {
     : process.env.NODE_ENV === 'development';
 };
 
+// Use this to check if we're running inside the actual Telegram app
+const isRealTelegramApp = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Check if Telegram WebApp exists
+  if (!window.Telegram?.WebApp) return false;
+  
+  // Check if we have valid initData (this is only provided in real Telegram WebApp)
+  return !!window.Telegram.WebApp.initData && window.Telegram.WebApp.initData.length > 10;
+};
+
 // Mock data for development environment
 const MOCK_USER = {
   telegramId: 'dev-user-123',
@@ -108,8 +123,28 @@ export function getTelegramUser() {
   }
   
   try {
+    // Detailed logging for troubleshooting
+    if (typeof window !== 'undefined') {
+      console.log('Telegram WebApp check:', {
+        telegramExists: !!window.Telegram,
+        webAppExists: !!window.Telegram?.WebApp,
+        initDataUnsafeExists: !!window.Telegram?.WebApp?.initDataUnsafe,
+        userExists: !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+        isRealTelegramApp: isRealTelegramApp()
+      });
+      
+      // Log init data in a safe way (truncated)
+      if (window.Telegram?.WebApp?.initData) {
+        const initDataLength = window.Telegram.WebApp.initData.length;
+        console.log(`Telegram initData available (length: ${initDataLength}), first 20 chars: ${
+          window.Telegram.WebApp.initData.substring(0, 20)}...`);
+      }
+    }
+    
+    // Case 1: User data available in initDataUnsafe
     if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
       const { user } = window.Telegram.WebApp.initDataUnsafe;
+      console.log('Found user in initDataUnsafe:', user);
       return {
         telegramId: user.id.toString(),
         username: user.username || '',
@@ -119,13 +154,32 @@ export function getTelegramUser() {
       };
     }
     
-    // If we're in development mode but the check above didn't catch it, return mock user
+    // Case 2: We're in the real Telegram app but user info is missing - try to extract from query params
+    if (isRealTelegramApp() && typeof window !== 'undefined') {
+      // Try to get user ID from the URL query parameters (Telegram sometimes puts it there)
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('tgWebAppStartParam') || urlParams.get('user') || urlParams.get('id');
+      
+      if (userId) {
+        console.log('Found user id in URL parameters:', userId);
+        return {
+          telegramId: userId,
+          username: 'user_' + userId.substring(0, 6),
+          firstName: 'Telegram',
+          lastName: 'User',
+          photoUrl: ''
+        };
+      }
+    }
+    
+    // Case 3: If we're in development mode but the check above didn't catch it, return mock user
     if (typeof window !== 'undefined' && 
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
       console.log('Development environment detected, using mock user as fallback');
       return createMockUser();
     }
     
+    // Case 4: If we're in a production environment but not in Telegram, or missing user info
     console.warn('Telegram user information not found. WebApp available:', 
       typeof window !== 'undefined' ? !!window.Telegram?.WebApp : false);
     return null;
@@ -368,10 +422,28 @@ export function initTelegramWebApp() {
     return true;
   }
   
+  if (typeof window === 'undefined') {
+    console.log('Running on server side - skipping Telegram WebApp initialization');
+    return false;
+  }
+  
+  // Log if we're in a real Telegram app environment
+  console.log('Is real Telegram app:', isRealTelegramApp());
+  
   if (isTelegramWebAppAvailable()) {
     // Only call Telegram WebApp methods if it's actually available
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    if (window.Telegram?.WebApp) {
       try {
+        // Extract any query parameters before initializing
+        // This needs to happen before WebApp initialization might clear them
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('tgWebAppStartParam');
+        const userId = urlParams.get('user') || urlParams.get('id');
+        
+        if (startParam || userId) {
+          console.log('Found URL parameters before initialization:', { startParam, userId });
+        }
+        
         // Notify WebApp is ready
         window.Telegram.WebApp.ready();
         
@@ -381,10 +453,23 @@ export function initTelegramWebApp() {
         console.log('Telegram WebApp initialized successfully');
         console.log('Game short name:', getGameShortName());
         
+        // Create a global reference to ensure consistent access
+        if (!window._telegramWebAppInitialized) {
+          window._telegramWebAppInitialized = true;
+          console.log('WebApp initialization marked as complete');
+        }
+        
+        // Check if there's any initData
+        if (window.Telegram.WebApp.initData) {
+          console.log('initData present after initialization, length:', window.Telegram.WebApp.initData.length);
+        } else {
+          console.warn('No initData after initialization');
+        }
+        
         // Log user data for debugging
         const userData = window.Telegram.WebApp.initDataUnsafe?.user;
         if (userData) {
-          console.log('Telegram user data available:', {
+          console.log('Telegram user data available after initialization:', {
             id: userData.id,
             username: userData.username,
             firstName: userData.first_name,
@@ -392,6 +477,12 @@ export function initTelegramWebApp() {
           });
         } else {
           console.warn('Telegram WebApp initialized but user data not available');
+          
+          // Try alternative methods to get user data
+          if (window.Telegram.WebApp.initDataUnsafe) {
+            console.log('initDataUnsafe contents:', 
+              JSON.stringify(window.Telegram.WebApp.initDataUnsafe).substring(0, 100) + '...');
+          }
         }
         
         return true;
@@ -402,10 +493,37 @@ export function initTelegramWebApp() {
     }
   } else {
     console.log('Telegram WebApp not available');
+    
+    // Add polyfill for development and testing outside Telegram
+    if (!isDevelopment() && !window.Telegram && isRunningStandalone()) {
+      console.log('Running in standalone mode outside Telegram - using basic polyfill');
+      
+      // Create a minimal Telegram WebApp object to prevent errors
+      window.Telegram = {
+        WebApp: {
+          initData: '',
+          initDataUnsafe: {},
+          ready: () => console.log('Mock ready called'),
+          expand: () => console.log('Mock expand called'),
+          showAlert: (msg: string) => window.alert(msg)
+        }
+      };
+      
+      return true;
+    }
+    
     return false;
   }
   
   return false;
+}
+
+// Check if the app is running as standalone (not in Telegram, not in development)
+function isRunningStandalone() {
+  return typeof window !== 'undefined' && 
+    !isDevelopment() && 
+    !isRealTelegramApp() && 
+    !window.Telegram?.WebApp;
 }
 
 // Wait for Telegram WebApp to be available with timeout
