@@ -223,8 +223,18 @@ export async function storeScore(telegramId: string, username: string, firstName
     
     console.log(`Using Redis key: ${leaderboardKey} for storing score`);
     
-    // Add score to sorted set
+    // Check if user already has a score in the leaderboard
     try {
+      const existingScore = await redis.zscore(leaderboardKey, telegramId);
+      console.log(`Existing score for ${telegramId}:`, existingScore);
+      
+      // If user has an existing score and the new score is lower, don't update
+      if (existingScore !== null && score <= Number(existingScore)) {
+        console.log(`New score ${score} is not higher than existing score ${existingScore}. Not updating.`);
+        return true; // Return success but without updating
+      }
+      
+      // Otherwise, proceed with updating the score
       console.log(`Executing ZADD ${leaderboardKey} ${score} ${telegramId}`);
       const zaddResult = await redis.zadd(leaderboardKey, { score, member: telegramId });
       console.log(`ZADD result:`, zaddResult);
