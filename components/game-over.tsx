@@ -88,53 +88,53 @@ export default function GameOver({
       if (result.success) {
         setTelegramScoreSubmitted(true);
         toast.success(result.newHighScore 
-          ? '새로운 최고 점수가 등록되었습니다!' 
-          : '점수가 성공적으로 제출되었습니다.');
+          ? 'New high score registered!' 
+          : 'Score submitted successfully.');
       } else {
-        setSubmitError(result.error || '알 수 없는 오류');
-        toast.error('점수 제출 실패: ' + (result.error || '알 수 없는 오류'));
+        setSubmitError(result.error || 'Unknown error');
+        toast.error('Failed to submit score: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error submitting Telegram score:', error);
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setSubmitError(errorMessage);
-      toast.error('점수 제출 오류: ' + errorMessage);
+      toast.error('Error submitting score: ' + errorMessage);
     } finally {
       setSubmittingScore(false);
     }
   };
 
   const levelText = {
-    easy: "쉬움",
-    medium: "보통",
-    hard: "어려움",
+    easy: "Easy",
+    medium: "Medium",
+    hard: "Hard",
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-10">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-        <h2 className="text-2xl font-bold mb-4">{gameState === "won" ? "🎉 승리! 🎉" : "💥 게임 오버 💥"}</h2>
+        <h2 className="text-2xl font-bold mb-4">{gameState === "won" ? "🎉 You Won! 🎉" : "💥 Game Over 💥"}</h2>
 
         <p className="mb-2">
           {gameState === "won"
-            ? `${totalSeals}마리의 물개를 모두 찾았습니다!`
+            ? `You found all ${totalSeals} seals!`
             : remainingTime === 0
-              ? `시간 초과! ${totalSeals}마리 중 ${sealsFound}마리의 물개를 찾았습니다.`
-              : `${totalSeals}마리 중 ${sealsFound}마리의 물개를 찾았습니다.`}
+              ? `Time's up! You found ${sealsFound} out of ${totalSeals} seals.`
+              : `You found ${sealsFound} out of ${totalSeals} seals.`}
         </p>
 
-        <p className="mb-1">난이도: {levelText[level]}</p>
+        <p className="mb-1">Level: {levelText[level]}</p>
 
         {gameState === "won" ? (
           <>
-            <p className="mb-2">사용 시간: {formatTime(timeUsed)}</p>
-            <p className="mb-4">점수: {calculateGameScore().toLocaleString()}</p>
+            <p className="mb-2">Time used: {formatTime(timeUsed)}</p>
+            <p className="mb-4">Score: {calculateGameScore().toLocaleString()}</p>
             
             {gameState === "won" && !isTelegramWebAppAvailable() && !isDevelopment() && (
               <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md mb-4 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                 <p className="text-sm text-blue-800 dark:text-blue-300">
-                  리더보드에 점수를 제출하려면 텔레그램에서 열어주세요
+                  Open in Telegram to submit your score to the leaderboard
                 </p>
               </div>
             )}
@@ -149,7 +149,7 @@ export default function GameOver({
             )}
           </>
         ) : (
-          <p className="mb-2">{remainingTime === 0 ? "시간이 초과되었습니다!" : "실패했습니다!"}</p>
+          <p className="mb-2">{remainingTime === 0 ? "You ran out of time!" : "You hit a failure!"}</p>
         )}
 
         <div className="grid grid-cols-2 gap-3 mb-3">
@@ -159,12 +159,12 @@ export default function GameOver({
             className="flex flex-col items-center justify-center py-2 h-auto"
           >
             <Home className="w-5 h-5 mb-1" />
-            <span className="text-xs">메뉴</span>
+            <span className="text-xs">Menu</span>
           </Button>
 
           <Button onClick={onNewGame} className="flex flex-col items-center justify-center py-2 h-auto">
             <RotateCcw className="w-5 h-5 mb-1" />
-            <span className="text-xs">다시 하기</span>
+            <span className="text-xs">Play Again</span>
           </Button>
         </div>
         
@@ -175,7 +175,7 @@ export default function GameOver({
             className="flex flex-col items-center justify-center py-2 h-auto"
           >
             <Trophy className="w-5 h-5 mb-1" />
-            <span className="text-xs">리더보드</span>
+            <span className="text-xs">Leaderboard</span>
           </Button>
           
           {gameState === "won" && (
@@ -192,7 +192,7 @@ export default function GameOver({
                   <MessageCircle className="w-5 h-5 mb-1" />
                 )}
                 <span className="text-xs">
-                  {submittingScore ? '제출 중...' : telegramScoreSubmitted ? '제출 완료' : submitError ? '재시도' : '점수 제출'}
+                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : submitError ? 'Retry' : 'Submit Score'}
                 </span>
               </Button>
             ) : isDevelopment() && (
@@ -208,7 +208,7 @@ export default function GameOver({
                   <MessageCircle className="w-5 h-5 mb-1" />
                 )}
                 <span className="text-xs">
-                  {submittingScore ? '제출 중...' : telegramScoreSubmitted ? '제출 완료' : '개발 모드 제출'}
+                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : 'Dev Submit'}
                 </span>
               </Button>
             )

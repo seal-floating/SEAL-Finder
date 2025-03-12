@@ -60,7 +60,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       fetchTelegramLeaderboard()
     } else {
       setLoading(false)
-      setError('텔레그램 연결이 필요합니다')
+      setError('Telegram connection required')
     }
   }, [])
   
@@ -74,7 +74,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       setTelegramLeaderboard(highScores)
     } catch (err) {
       console.error('Error fetching leaderboard:', err)
-      setError('리더보드 데이터를 불러올 수 없습니다')
+      setError('Unable to load leaderboard data')
       setTelegramLeaderboard([])
     } finally {
       setLoading(false)
@@ -100,12 +100,12 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-500" />
-            <h2 className="text-xl font-bold">리더보드</h2>
+            <h2 className="text-xl font-bold">Leaderboard</h2>
             {isTelegramAvailable && (
               <MessageCircle className="w-4 h-4 text-blue-500" />
             )}
             {isDevelopment() && !isTelegramWebAppAvailable() && (
-              <span className="text-xs bg-purple-100 text-purple-800 px-1 rounded">개발 모드</span>
+              <span className="text-xs bg-purple-100 text-purple-800 px-1 rounded">Dev Mode</span>
             )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -116,8 +116,8 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         {!isTelegramAvailable && !isDevelopment() ? (
           <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
             <MessageCircle className="w-8 h-8 opacity-50" />
-            <p>텔레그램 연결이 필요합니다</p>
-            <p className="text-sm">리더보드를 보려면 텔레그램에서 게임을 열어주세요</p>
+            <p>Telegram connection required</p>
+            <p className="text-sm">Please open this game in Telegram to view the leaderboard</p>
           </div>
         ) : (
           <div className="overflow-y-auto flex-1">
@@ -130,17 +130,17 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
                   onClick={fetchTelegramLeaderboard}
                   className="mt-2"
                 >
-                  다시 시도
+                  Retry
                 </Button>
               </div>
             ) : loading ? (
               <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
-                <p>로딩 중...</p>
+                <p>Loading...</p>
               </div>
             ) : telegramLeaderboard.length === 0 ? (
               <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
                 <Users className="w-8 h-8 opacity-50" />
-                <p>아직 점수가 없습니다</p>
+                <p>No scores yet</p>
                 {isDevelopment() && (
                   <Button 
                     variant="outline" 
@@ -148,7 +148,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
                     onClick={fetchTelegramLeaderboard}
                     className="mt-2"
                   >
-                    모의 데이터 불러오기
+                    Load Mock Data
                   </Button>
                 )}
               </div>
