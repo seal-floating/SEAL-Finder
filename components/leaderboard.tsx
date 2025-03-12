@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import type { GameLevel } from "@/types/game"
-import { Trophy, Users, X } from "lucide-react"
+import { Trophy, Users, X, MessageCircle } from "lucide-react"
 import { formatTime } from "@/lib/utils"
+import { isTelegramWebAppAvailable } from "@/lib/telegram"
 
 interface TelegramLeaderboardEntry {
   rank: number
@@ -35,15 +36,21 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [selectedSeason, setSelectedSeason] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const isTelegramAvailable = typeof window !== 'undefined' && isTelegramWebAppAvailable()
   
   // Fetch seasons on component mount
   useEffect(() => {
-    fetchSeasons()
+    if (isTelegramAvailable) {
+      fetchSeasons()
+    } else {
+      setLoading(false)
+      setError('Telegram connection is required for leaderboard')
+    }
   }, [])
   
   // Fetch telegram leaderboard data when season is selected
   useEffect(() => {
-    if (selectedSeason) {
+    if (selectedSeason && isTelegramAvailable) {
       fetchTelegramLeaderboard()
     }
   }, [selectedSeason])
@@ -64,11 +71,14 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         } else {
           setSelectedSeason(data.seasons[0].id)
         }
+      } else {
+        setError('No seasons available')
+        setLoading(false)
       }
-      setError(null)
     } catch (err) {
       console.error('Error fetching seasons:', err)
       setError('Unable to load season data')
+      setLoading(false)
     }
   }
   
@@ -114,69 +124,82 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-500" />
             <h2 className="text-xl font-bold">Leaderboard</h2>
+            {isTelegramAvailable && (
+              <MessageCircle className="w-4 h-4 text-blue-500" />
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
         
-        {seasons.length > 0 && (
-          <div className="p-4 border-b">
-            <select 
-              className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-              value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
-            >
-              {seasons.map((season) => (
-                <option key={season.id} value={season.id}>
-                  {season.name} {season.isActive && '(Current)'}
-                </option>
-              ))}
-            </select>
+        {!isTelegramAvailable ? (
+          <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
+            <MessageCircle className="w-8 h-8 opacity-50" />
+            <p>Telegram connection is required</p>
+            <p className="text-sm">Please open this game in Telegram to view the leaderboard</p>
           </div>
-        )}
-        
-        <div className="overflow-y-auto flex-1">
-          {error ? (
-            <div className="p-8 text-center text-red-500 flex flex-col items-center gap-2">
-              <p>{error}</p>
-            </div>
-          ) : loading ? (
-            <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
-              <p>Loading...</p>
-            </div>
-          ) : telegramLeaderboard.length === 0 ? (
-            <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
-              <Users className="w-8 h-8 opacity-50" />
-              <p>No scores yet for this season</p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {telegramLeaderboard.map((entry) => (
-                <div key={entry.telegramId} className="p-4 flex items-center">
-                  <div className="w-8 font-bold text-center">
-                    {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`}
-                  </div>
-                  <div className="flex-1 ml-2 flex items-center gap-2">
-                    {entry.photoUrl && (
-                      <img 
-                        src={entry.photoUrl} 
-                        alt={formatUserName(entry)} 
-                        className="w-6 h-6 rounded-full"
-                      />
-                    )}
-                    <div>
-                      <div className="font-medium">{formatUserName(entry)}</div>
-                    </div>
-                  </div>
-                  <div className="text-right font-semibold">
-                    {entry.score.toLocaleString()}
-                  </div>
+        ) : (
+          <>
+            {seasons.length > 0 && (
+              <div className="p-4 border-b">
+                <select 
+                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  {seasons.map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name} {season.isActive && '(Current)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            <div className="overflow-y-auto flex-1">
+              {error ? (
+                <div className="p-8 text-center text-red-500 flex flex-col items-center gap-2">
+                  <p>{error}</p>
                 </div>
-              ))}
+              ) : loading ? (
+                <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
+                  <p>Loading...</p>
+                </div>
+              ) : telegramLeaderboard.length === 0 ? (
+                <div className="p-8 text-center text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2">
+                  <Users className="w-8 h-8 opacity-50" />
+                  <p>No scores yet for this season</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {telegramLeaderboard.map((entry) => (
+                    <div key={entry.telegramId} className="p-4 flex items-center">
+                      <div className="w-8 font-bold text-center">
+                        {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`}
+                      </div>
+                      <div className="flex-1 ml-2 flex items-center gap-2">
+                        {entry.photoUrl && (
+                          <img 
+                            src={entry.photoUrl} 
+                            alt={formatUserName(entry)} 
+                            className="w-6 h-6 rounded-full"
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{formatUserName(entry)}</div>
+                        </div>
+                      </div>
+                      <div className="text-right font-semibold">
+                        {entry.score.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   )

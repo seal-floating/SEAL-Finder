@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import type { GameState, GameLevel } from "@/types/game"
 import { Button } from "@/components/ui/button"
 import { formatTime } from "@/lib/utils"
-import { Home, RotateCcw, Trophy, MessageCircle } from "lucide-react"
+import { Home, RotateCcw, Trophy, MessageCircle, AlertCircle } from "lucide-react"
 import { isTelegramWebAppAvailable, submitGameScore } from "@/lib/telegram"
 import { toast } from "sonner"
 
@@ -113,6 +113,15 @@ export default function GameOver({
           <>
             <p className="mb-2">Time used: {formatTime(timeUsed)}</p>
             <p className="mb-4">Score: {calculateGameScore().toLocaleString()}</p>
+            
+            {gameState === "won" && !isTelegramAvailable && (
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md mb-4 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  Open in Telegram to submit your score to the leaderboard
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <p className="mb-2">{remainingTime === 0 ? "You ran out of time!" : "You hit a failure!"}</p>
