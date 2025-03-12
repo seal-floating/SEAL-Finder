@@ -101,4 +101,90 @@ export async function getAllSeasons() {
     console.error('Error getting all seasons:', error);
     return { [DEFAULT_SEASON.id]: JSON.stringify(DEFAULT_SEASON) };
   }
+}
+
+// Fallback leaderboard operations for when Telegram API fails
+// Store score in Redis
+export async function storeScore(telegramId: string, username: string, firstName: string, lastName: string, score: number) {
+  try {
+    const seasonId = await getActiveSeasonId();
+    const leaderboardKey = `leaderboard:${seasonId}`;
+    
+    // Add score to sorted set
+    await redis.zadd(leaderboardKey, { score, member: telegramId });
+    
+    // Store user details
+    await redis.hset(`user:${telegramId}`, {
+      telegramId,
+      username,
+      firstName,
+      lastName,
+      lastScore: score,
+      lastUpdated: new Date().toISOString()
+    });
+    
+    console.log(`Stored score ${score} for user ${telegramId} in Redis`);
+    return true;
+  } catch (error) {
+    console.error('Error storing score in Redis:', error);
+    return false;
+  }
+}
+
+// Get leaderboard from Redis
+export async function getLeaderboard(limit = 100) {
+  try {
+    const seasonId = await getActiveSeasonId();
+    const leaderboardKey = `leaderboard:${seasonId}`;
+    
+    // Get top scores with user IDs
+    const rawScores = await redis.zrange(leaderboardKey, 0, limit - 1, { 
+      rev: true,
+      withScores: true 
+    });
+    
+    if (!rawScores || rawScores.length === 0) {
+      console.log('No scores found in Redis leaderboard');
+      return [];
+    }
+    
+    // Process scores to match Telegram format
+    const leaderboard = [];
+    let rank = 1;
+    
+    for (let i = 0; i < rawScores.length; i += 2) {
+      const telegramId = rawScores[i];
+      const score = parseInt(rawScores[i+1]);
+      
+      // Get user details
+      let userDetails;
+      try {
+        userDetails = await redis.hgetall(`user:${telegramId}`);
+      } catch (e) {
+        console.warn(`Could not get details for user ${telegramId}:`, e);
+        userDetails = {
+          telegramId,
+          username: 'Unknown',
+          firstName: 'Unknown',
+          lastName: 'User'
+        };
+      }
+      
+      leaderboard.push({
+        rank,
+        telegramId,
+        username: userDetails.username || 'Unknown',
+        firstName: userDetails.firstName || '',
+        lastName: userDetails.lastName || '',
+        score
+      });
+      
+      rank++;
+    }
+    
+    return leaderboard;
+  } catch (error) {
+    console.error('Error getting leaderboard from Redis:', error);
+    return [];
+  }
 } 

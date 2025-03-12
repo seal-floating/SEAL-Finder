@@ -278,6 +278,40 @@ export async function submitGameScore(score: number) {
     // In production, use Telegram GameScore API
     else {
       // This should be a server-side API call to protect the bot token
+      // Get additional details that might be available in the Telegram WebApp
+      let inlineMessageId = "";
+      let chatId = null;
+      let messageId = null;
+      
+      // Try to get information from Telegram WebApp if available
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        
+        // Check if startParam could be used as inline_message_id
+        if (webApp.initDataUnsafe?.start_param) {
+          inlineMessageId = webApp.initDataUnsafe.start_param;
+          console.log('Using start_param as inline_message_id:', inlineMessageId);
+        }
+        
+        // Check URL parameters as a fallback
+        if (!inlineMessageId && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const startParam = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp');
+          if (startParam) {
+            inlineMessageId = startParam;
+            console.log('Using URL param as inline_message_id:', inlineMessageId);
+          }
+        }
+      }
+      
+      console.log('Submitting score with context:', { 
+        userId: user.telegramId, 
+        score, 
+        inlineMessageId,
+        chatId,
+        messageId
+      });
+
       const response = await fetch('/api/telegram/setGameScore', {
         method: 'POST',
         headers: {
@@ -286,7 +320,10 @@ export async function submitGameScore(score: number) {
         body: JSON.stringify({
           userId: user.telegramId,
           score,
-          gameShortName: getGameShortName()
+          gameShortName: getGameShortName(),
+          inlineMessageId, // Add inline_message_id if we have it
+          chatId,          // Add chat_id if we have it
+          messageId        // Add message_id if we have it
         }),
       });
       
@@ -308,7 +345,51 @@ export async function submitGameScore(score: number) {
       
       if (!response.ok) {
         console.error('Error submitting score to Telegram. Status:', response.status, 'Response:', responseData);
+        
+        // Handle the case when Telegram API fails - fall back to Redis
+        try {
+          console.log('Falling back to Redis for score storage');
+          const { storeScore } = await import('@/lib/redis');
+          
+          // Store score in Redis
+          const result = await storeScore(
+            user.telegramId,
+            user.username || '',
+            user.firstName || '',
+            user.lastName || '',
+            score
+          );
+          
+          if (result) {
+            console.log('Successfully stored score in Redis as fallback');
+            return {
+              success: true,
+              message: 'Score saved to leaderboard (Redis fallback)',
+              newHighScore: false, // We don't know if it's a high score when using Redis
+              score: score,
+              user: user
+            };
+          }
+        } catch (redisError) {
+          console.error('Redis fallback also failed:', redisError);
+        }
+        
+        // If Redis also fails, throw the original error
         throw new Error(responseData?.error || 'Error submitting score to Telegram API');
+      }
+      
+      // Try to also save the score in Redis for redundancy
+      try {
+        const { storeScore } = await import('@/lib/redis');
+        await storeScore(
+          user.telegramId,
+          user.username || '',
+          user.firstName || '',
+          user.lastName || '',
+          score
+        );
+      } catch (redisError) {
+        console.warn('Failed to store score in Redis (redundant storage):', redisError);
       }
       
       return {
@@ -377,31 +458,66 @@ export async function getGameHighScores() {
   try {
     // In production, use Telegram GameScore API
     console.log('Fetching leaderboard for user:', user.telegramId);
-    const response = await fetch(`/api/telegram/getGameHighScores?userId=${user.telegramId}&gameShortName=${getGameShortName()}`);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error getting high scores from Telegram:', errorText);
-      throw new Error('Unable to load leaderboard: Failed to get high scores from Telegram');
+    try {
+      const response = await fetch(`/api/telegram/getGameHighScores?userId=${user.telegramId}&gameShortName=${getGameShortName()}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error getting high scores from Telegram:', errorText);
+        console.log('Falling back to Redis leaderboard due to Telegram API error');
+        
+        // Import and use Redis-based fallback leaderboard
+        const { getLeaderboard } = await import('@/lib/redis');
+        const redisLeaderboard = await getLeaderboard();
+        
+        if (redisLeaderboard && redisLeaderboard.length > 0) {
+          console.log(`Loaded ${redisLeaderboard.length} entries from Redis fallback leaderboard`);
+          return redisLeaderboard;
+        }
+        
+        throw new Error('Unable to load leaderboard: Failed to get high scores from both Telegram and Redis');
+      }
+      
+      const data = await response.json();
+      
+      // Transform Telegram's format to our format
+      if (data.result) {
+        return data.result.map((entry: any, index: number) => ({
+          rank: index + 1,
+          telegramId: entry.user.id.toString(),
+          username: entry.user.username || '',
+          firstName: entry.user.first_name || '',
+          lastName: entry.user.last_name || '',
+          score: entry.score
+        }));
+      }
+      
+      // If no results, try Redis fallback
+      console.log('No leaderboard entries returned from Telegram API, trying Redis fallback');
+      const { getLeaderboard } = await import('@/lib/redis');
+      const redisLeaderboard = await getLeaderboard();
+      
+      if (redisLeaderboard && redisLeaderboard.length > 0) {
+        console.log(`Loaded ${redisLeaderboard.length} entries from Redis fallback leaderboard`);
+        return redisLeaderboard;
+      }
+      
+      // If still no results, return empty array
+      return [];
+    } catch (error) {
+      console.error('Error in getGameHighScores:', error);
+      
+      // Final fallback to Redis
+      try {
+        console.log('Attempting final Redis fallback for leaderboard');
+        const { getLeaderboard } = await import('@/lib/redis');
+        return await getLeaderboard();
+      } catch (redisError) {
+        console.error('Redis fallback also failed:', redisError);
+        return [];
+      }
     }
-    
-    const data = await response.json();
-    
-    // Transform Telegram's format to our format
-    if (data.result) {
-      return data.result.map((entry: any, index: number) => ({
-        rank: index + 1,
-        telegramId: entry.user.id.toString(),
-        username: entry.user.username || '',
-        firstName: entry.user.first_name || '',
-        lastName: entry.user.last_name || '',
-        score: entry.score
-      }));
-    }
-    
-    // If no results, return empty array
-    console.log('No leaderboard entries returned from Telegram API');
-    return [];
   } catch (error) {
     console.error('Error getting high scores:', error);
     
