@@ -15,6 +15,8 @@ declare global {
           };
           auth_date: number;
           hash: string;
+          start_param?: string; // Game short name can be passed here
+          game_short_name?: string; // Game short name
         };
         ready(): void;
         close(): void;
@@ -42,6 +44,10 @@ declare global {
     };
   }
 }
+
+// Game configuration
+const GAME_SHORT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_GAME_SHORT_NAME || 'FindSealGame';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // This should be kept server-side only
 
 // Check if we're in development mode
 const isDevelopment = () => {
@@ -96,7 +102,17 @@ export function isTelegramWebAppAvailable() {
   return typeof window !== 'undefined' && !!window.Telegram?.WebApp;
 }
 
-// Submit game score
+// Get game short name from Telegram WebApp
+export function getGameShortName() {
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe) {
+    return window.Telegram.WebApp.initDataUnsafe.game_short_name || 
+           window.Telegram.WebApp.initDataUnsafe.start_param || 
+           GAME_SHORT_NAME;
+  }
+  return GAME_SHORT_NAME;
+}
+
+// Submit game score using Telegram GameScore API
 export async function submitGameScore(score: number) {
   let user = getTelegramUser();
   
@@ -117,43 +133,135 @@ export async function submitGameScore(score: number) {
     // Add a timestamp to help with debugging
     const timestamp = new Date().toISOString();
     
-    const response = await fetch('/api/scores', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...user,
-        score,
-        timestamp,
-        isDevelopment: isDevelopment()
-      }),
-    });
-    
-    // Log the response status
-    console.log('Score submission response status:', response.status);
-    
-    // Get the response text for debugging
-    const responseText = await response.text();
-    console.log('Score submission response text:', responseText);
-    
-    // Parse the response if it's JSON
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse response as JSON:', e);
-      throw new Error('Invalid response format');
+    // In development mode, use our custom API
+    if (isDevelopment()) {
+      const response = await fetch('/api/scores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...user,
+          score,
+          timestamp,
+          isDevelopment: true
+        }),
+      });
+      
+      // Log the response status
+      console.log('Score submission response status:', response.status);
+      
+      // Get the response text for debugging
+      const responseText = await response.text();
+      console.log('Score submission response text:', responseText);
+      
+      // Parse the response if it's JSON
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!response.ok) {
+        console.error('Error submitting score. Status:', response.status, 'Response:', responseData);
+        throw new Error(responseData?.error || 'Error submitting score');
+      }
+      
+      return responseData;
+    } 
+    // In production, use Telegram GameScore API
+    else {
+      // This should be a server-side API call to protect the bot token
+      const response = await fetch('/api/telegram/setGameScore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.telegramId,
+          score,
+          gameShortName: getGameShortName()
+        }),
+      });
+      
+      // Log the response status
+      console.log('Telegram GameScore API response status:', response.status);
+      
+      // Get the response text for debugging
+      const responseText = await response.text();
+      console.log('Telegram GameScore API response text:', responseText);
+      
+      // Parse the response if it's JSON
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!response.ok) {
+        console.error('Error submitting score to Telegram. Status:', response.status, 'Response:', responseData);
+        throw new Error(responseData?.error || 'Error submitting score to Telegram');
+      }
+      
+      return {
+        success: true,
+        message: 'Score submitted to Telegram successfully',
+        newHighScore: responseData.ok // Telegram returns 'ok: true' if successful
+      };
     }
-    
-    if (!response.ok) {
-      console.error('Error submitting score. Status:', response.status, 'Response:', responseData);
-      throw new Error(responseData?.error || 'Error submitting score');
-    }
-    
-    return responseData;
   } catch (error) {
     console.error('Error submitting score:', error);
+    throw error;
+  }
+}
+
+// Get high scores from Telegram GameScore API
+export async function getGameHighScores() {
+  let user = getTelegramUser();
+  
+  if (!user && !isDevelopment()) {
+    throw new Error('Telegram user information not found');
+  }
+  
+  try {
+    // In development mode, use our custom API
+    if (isDevelopment()) {
+      const response = await fetch('/api/leaderboard?limit=20');
+      const data = await response.json();
+      return data.leaderboard || [];
+    } 
+    // In production, use Telegram GameScore API
+    else {
+      const response = await fetch(`/api/telegram/getGameHighScores?userId=${user?.telegramId}&gameShortName=${getGameShortName()}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error getting high scores from Telegram:', errorText);
+        throw new Error('Failed to get high scores from Telegram');
+      }
+      
+      const data = await response.json();
+      
+      // Transform Telegram's format to our format
+      if (data.result) {
+        return data.result.map((entry: any, index: number) => ({
+          rank: index + 1,
+          telegramId: entry.user.id.toString(),
+          username: entry.user.username || '',
+          firstName: entry.user.first_name || '',
+          lastName: entry.user.last_name || '',
+          score: entry.score
+        }));
+      }
+      
+      return [];
+    }
+  } catch (error) {
+    console.error('Error getting high scores:', error);
     throw error;
   }
 }
@@ -170,6 +278,7 @@ export function initTelegramWebApp() {
       window.Telegram.WebApp.expand();
       
       console.log('Telegram WebApp initialized successfully');
+      console.log('Game short name:', getGameShortName());
     }
   } else {
     console.log('Telegram WebApp not available or in development mode');
