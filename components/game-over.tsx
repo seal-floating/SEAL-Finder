@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import type { GameState, GameLevel } from "@/types/game"
 import { Button } from "@/components/ui/button"
 import { formatTime } from "@/lib/utils"
-import { Home, RotateCcw, Trophy, MessageCircle, AlertCircle, RefreshCw } from "lucide-react"
+import { Home, RotateCcw, Trophy, MessageCircle, AlertCircle, RefreshCw, Code } from "lucide-react"
 import { isTelegramWebAppAvailable, submitGameScore } from "@/lib/telegram"
 import { toast } from "sonner"
 
@@ -66,7 +66,7 @@ export default function GameOver({
   };
 
   useEffect(() => {
-    // Auto-submit Telegram score (if running in Telegram WebApp)
+    // Auto-submit Telegram score (if running in Telegram WebApp and not in development)
     if (gameState === "won" && isTelegramAvailable && !isDevelopment()) {
       handleSubmitTelegramScore();
     }
@@ -139,6 +139,15 @@ export default function GameOver({
               </div>
             )}
             
+            {isDevelopment() && (
+              <div className="bg-purple-50 dark:bg-purple-950 p-3 rounded-md mb-4 flex items-center gap-2">
+                <Code className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                <p className="text-sm text-purple-800 dark:text-purple-300">
+                  Development Mode: Score submission will be simulated
+                </p>
+              </div>
+            )}
+            
             {submitError && (
               <div className="bg-red-50 dark:bg-red-950 p-3 rounded-md mb-4 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
@@ -179,39 +188,36 @@ export default function GameOver({
           </Button>
           
           {gameState === "won" && (
-            isTelegramWebAppAvailable() ? (
-              <Button
-                onClick={handleSubmitTelegramScore}
-                variant="outline"
-                className="flex flex-col items-center justify-center py-2 h-auto bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-300"
-                disabled={telegramScoreSubmitted || submittingScore}
-              >
-                {submittingScore ? (
-                  <RefreshCw className="w-5 h-5 mb-1 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-5 h-5 mb-1" />
-                )}
-                <span className="text-xs">
-                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : submitError ? 'Retry' : 'Submit Score'}
-                </span>
-              </Button>
-            ) : isDevelopment() && (
-              <Button
-                onClick={handleSubmitTelegramScore}
-                variant="outline"
-                className="flex flex-col items-center justify-center py-2 h-auto bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900 dark:hover:bg-purple-800 dark:border-purple-700 dark:text-purple-300"
-                disabled={telegramScoreSubmitted || submittingScore}
-              >
-                {submittingScore ? (
-                  <RefreshCw className="w-5 h-5 mb-1 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-5 h-5 mb-1" />
-                )}
-                <span className="text-xs">
-                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : 'Dev Submit'}
-                </span>
-              </Button>
-            )
+            <Button
+              onClick={handleSubmitTelegramScore}
+              variant="outline"
+              className={`flex flex-col items-center justify-center py-2 h-auto ${
+                isDevelopment() 
+                  ? "bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900 dark:hover:bg-purple-800 dark:border-purple-700 dark:text-purple-300"
+                  : "bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-300"
+              }`}
+              disabled={telegramScoreSubmitted || submittingScore}
+            >
+              {submittingScore ? (
+                <RefreshCw className="w-5 h-5 mb-1 animate-spin" />
+              ) : isDevelopment() ? (
+                <Code className="w-5 h-5 mb-1" />
+              ) : (
+                <MessageCircle className="w-5 h-5 mb-1" />
+              )}
+              <span className="text-xs">
+                {submittingScore 
+                  ? 'Submitting...' 
+                  : telegramScoreSubmitted 
+                    ? 'Submitted' 
+                    : submitError 
+                      ? 'Retry' 
+                      : isDevelopment() 
+                        ? 'Submit (Dev)' 
+                        : 'Submit Score'
+                }
+              </span>
+            </Button>
           )}
         </div>
       </div>
