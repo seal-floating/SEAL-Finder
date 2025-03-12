@@ -55,6 +55,19 @@ export function getTelegramUser() {
       photoUrl: user.photo_url || ''
     };
   }
+  
+  // For testing outside of Telegram, create a mock user
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Using mock Telegram user for development');
+    return {
+      telegramId: 'dev-user-' + Math.floor(Math.random() * 1000),
+      username: 'dev_user',
+      firstName: 'Dev',
+      lastName: 'User',
+      photoUrl: ''
+    };
+  }
+  
   return null;
 }
 
@@ -65,16 +78,32 @@ export function isTelegramWebAppAvailable() {
 
 // Submit game score
 export async function submitGameScore(score: number) {
-  const user = getTelegramUser();
+  let user = getTelegramUser();
   
   if (!user) {
     console.error('Telegram user information not found. WebApp available:', isTelegramWebAppAvailable());
-    throw new Error('Telegram user information not found');
+    
+    // For development or testing, create a mock user
+    if (process.env.NODE_ENV === 'development') {
+      user = {
+        telegramId: 'dev-user-' + Math.floor(Math.random() * 1000),
+        username: 'dev_user',
+        firstName: 'Dev',
+        lastName: 'User',
+        photoUrl: ''
+      };
+      console.log('Created mock user for development:', user);
+    } else {
+      throw new Error('Telegram user information not found');
+    }
   }
   
   console.log('Submitting score:', score, 'for user:', user);
   
   try {
+    // Add a timestamp to help with debugging
+    const timestamp = new Date().toISOString();
+    
     const response = await fetch('/api/scores', {
       method: 'POST',
       headers: {
@@ -82,7 +111,8 @@ export async function submitGameScore(score: number) {
       },
       body: JSON.stringify({
         ...user,
-        score
+        score,
+        timestamp
       }),
     });
     
@@ -122,5 +152,9 @@ export function initTelegramWebApp() {
     
     // Expand WebApp (full screen)
     window.Telegram.WebApp.expand();
+    
+    console.log('Telegram WebApp initialized successfully');
+  } else {
+    console.log('Telegram WebApp not available');
   }
 } 

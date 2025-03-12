@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import type { GameState, GameLevel } from "@/types/game"
 import { Button } from "@/components/ui/button"
 import { formatTime } from "@/lib/utils"
-import { Home, RotateCcw, Trophy, MessageCircle, AlertCircle } from "lucide-react"
+import { Home, RotateCcw, Trophy, MessageCircle, AlertCircle, RefreshCw } from "lucide-react"
 import { isTelegramWebAppAvailable, submitGameScore } from "@/lib/telegram"
 import { toast } from "sonner"
 
@@ -33,6 +33,7 @@ export default function GameOver({
 }: GameOverProps) {
   const [telegramScoreSubmitted, setTelegramScoreSubmitted] = useState(false)
   const [submittingScore, setSubmittingScore] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const isTelegramAvailable = typeof window !== 'undefined' && isTelegramWebAppAvailable()
 
   // Calculate time used (totalTime - remainingTime)
@@ -64,12 +65,15 @@ export default function GameOver({
 
   // Submit score to Telegram
   const handleSubmitTelegramScore = async () => {
-    if (!isTelegramAvailable || gameState !== "won") return;
+    if (gameState !== "won") return;
     
     setSubmittingScore(true);
+    setSubmitError(null);
+    
     try {
       const score = calculateGameScore();
       console.log('Attempting to submit score:', score);
+      
       const result = await submitGameScore(score);
       
       if (result.success) {
@@ -78,11 +82,14 @@ export default function GameOver({
           ? 'New high score registered!' 
           : 'Score submitted successfully.');
       } else {
+        setSubmitError(result.error || 'Unknown error');
         toast.error('Failed to submit score: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error submitting Telegram score:', error);
-      toast.error('Error submitting score. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setSubmitError(errorMessage);
+      toast.error('Error submitting score: ' + errorMessage);
     } finally {
       setSubmittingScore(false);
     }
@@ -122,6 +129,15 @@ export default function GameOver({
                 </p>
               </div>
             )}
+            
+            {submitError && (
+              <div className="bg-red-50 dark:bg-red-950 p-3 rounded-md mb-4 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <p className="text-sm text-red-800 dark:text-red-300">
+                  {submitError}
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <p className="mb-2">{remainingTime === 0 ? "You ran out of time!" : "You hit a failure!"}</p>
@@ -153,18 +169,40 @@ export default function GameOver({
             <span className="text-xs">Leaderboard</span>
           </Button>
           
-          {isTelegramAvailable && gameState === "won" && (
-            <Button
-              onClick={handleSubmitTelegramScore}
-              variant="outline"
-              className="flex flex-col items-center justify-center py-2 h-auto bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-300"
-              disabled={telegramScoreSubmitted || submittingScore}
-            >
-              <MessageCircle className="w-5 h-5 mb-1" />
-              <span className="text-xs">
-                {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : 'Submit Score'}
-              </span>
-            </Button>
+          {gameState === "won" && (
+            isTelegramAvailable ? (
+              <Button
+                onClick={handleSubmitTelegramScore}
+                variant="outline"
+                className="flex flex-col items-center justify-center py-2 h-auto bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-300"
+                disabled={telegramScoreSubmitted || submittingScore}
+              >
+                {submittingScore ? (
+                  <RefreshCw className="w-5 h-5 mb-1 animate-spin" />
+                ) : (
+                  <MessageCircle className="w-5 h-5 mb-1" />
+                )}
+                <span className="text-xs">
+                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : submitError ? 'Retry' : 'Submit Score'}
+                </span>
+              </Button>
+            ) : process.env.NODE_ENV === 'development' && (
+              <Button
+                onClick={handleSubmitTelegramScore}
+                variant="outline"
+                className="flex flex-col items-center justify-center py-2 h-auto bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900 dark:hover:bg-purple-800 dark:border-purple-700 dark:text-purple-300"
+                disabled={telegramScoreSubmitted || submittingScore}
+              >
+                {submittingScore ? (
+                  <RefreshCw className="w-5 h-5 mb-1 animate-spin" />
+                ) : (
+                  <MessageCircle className="w-5 h-5 mb-1" />
+                )}
+                <span className="text-xs">
+                  {submittingScore ? 'Submitting...' : telegramScoreSubmitted ? 'Submitted' : 'Dev Submit'}
+                </span>
+              </Button>
+            )
           )}
         </div>
       </div>
