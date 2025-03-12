@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { saveScore, getLeaderboard } from "@/lib/leaderboard-service"
 import { formatTime } from "@/lib/utils"
 import type { LeaderboardEntry } from "@/components/leaderboard"
-import { Home, RotateCcw, Trophy } from "lucide-react"
+import { Home, RotateCcw, Trophy, MessageCircle } from "lucide-react"
+import { isTelegramWebAppAvailable, submitGameScore } from "@/lib/telegram"
+import { toast } from "sonner"
 
 interface GameOverProps {
   gameState: GameState
@@ -33,9 +35,29 @@ export default function GameOver({
 }: GameOverProps) {
   const [rank, setRank] = useState<number | null>(null)
   const [savedEntry, setSavedEntry] = useState<LeaderboardEntry | null>(null)
+  const [telegramScoreSubmitted, setTelegramScoreSubmitted] = useState(false)
+  const [submittingScore, setSubmittingScore] = useState(false)
+  const isTelegramAvailable = typeof window !== 'undefined' && isTelegramWebAppAvailable()
 
   // Calculate time used (totalTime - remainingTime)
   const timeUsed = totalTime - remainingTime
+  
+  // 게임 점수 계산 (난이도에 따라 가중치 부여)
+  const calculateGameScore = () => {
+    if (gameState !== "won") return 0;
+    
+    // 기본 점수: 남은 시간 * 10
+    let baseScore = remainingTime * 10;
+    
+    // 난이도 가중치
+    const difficultyMultiplier = {
+      easy: 1,
+      medium: 2,
+      hard: 3
+    };
+    
+    return Math.round(baseScore * difficultyMultiplier[level]);
+  };
 
   useEffect(() => {
     // Only save score and calculate rank if the game was won
@@ -52,8 +74,36 @@ export default function GameOver({
 
       const rankIndex = levelScores.findIndex((e) => e.id === entry.id)
       setRank(rankIndex !== -1 ? rankIndex + 1 : null)
+      
+      // 텔레그램 점수 자동 제출 (텔레그램 웹앱에서 실행 중인 경우)
+      if (isTelegramAvailable) {
+        handleSubmitTelegramScore();
+      }
     }
   }, [gameState, level, timeUsed, sealsFound, totalSeals])
+
+  // 텔레그램 점수 제출
+  const handleSubmitTelegramScore = async () => {
+    if (!isTelegramAvailable || gameState !== "won") return;
+    
+    setSubmittingScore(true);
+    try {
+      const score = calculateGameScore();
+      const result = await submitGameScore(score);
+      
+      if (result.success) {
+        setTelegramScoreSubmitted(true);
+        toast.success(result.newHighScore 
+          ? '새로운 최고 점수가 등록되었습니다!' 
+          : '점수가 제출되었습니다.');
+      }
+    } catch (error) {
+      console.error('텔레그램 점수 제출 오류:', error);
+      toast.error('점수 제출 중 오류가 발생했습니다.');
+    } finally {
+      setSubmittingScore(false);
+    }
+  };
 
   const levelText = {
     easy: "Easy",
@@ -77,7 +127,10 @@ export default function GameOver({
         <p className="mb-1">Level: {levelText[level]}</p>
 
         {gameState === "won" ? (
-          <p className="mb-2">Time used: {formatTime(timeUsed)}</p>
+          <>
+            <p className="mb-2">Time used: {formatTime(timeUsed)}</p>
+            <p className="mb-4">Score: {calculateGameScore().toLocaleString()}</p>
+          </>
         ) : (
           <p className="mb-2">{remainingTime === 0 ? "You ran out of time!" : "You hit a failure!"}</p>
         )}
@@ -88,7 +141,7 @@ export default function GameOver({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <Button
             onClick={onBackToMenu}
             variant="secondary"
@@ -102,7 +155,9 @@ export default function GameOver({
             <RotateCcw className="w-5 h-5 mb-1" />
             <span className="text-xs">Play Again</span>
           </Button>
-
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={onShowLeaderboard}
             variant="outline"
@@ -111,6 +166,20 @@ export default function GameOver({
             <Trophy className="w-5 h-5 mb-1" />
             <span className="text-xs">Ranking</span>
           </Button>
+          
+          {isTelegramAvailable && gameState === "won" && (
+            <Button
+              onClick={handleSubmitTelegramScore}
+              variant="outline"
+              className="flex flex-col items-center justify-center py-2 h-auto bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-300"
+              disabled={telegramScoreSubmitted || submittingScore}
+            >
+              <MessageCircle className="w-5 h-5 mb-1" />
+              <span className="text-xs">
+                {submittingScore ? '제출 중...' : telegramScoreSubmitted ? '제출 완료' : '텔레그램 점수 제출'}
+              </span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

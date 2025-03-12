@@ -14,6 +14,7 @@ import { getLeaderboard, getTelegramWebApp } from "@/lib/leaderboard-service"
 import Script from "next/script"
 import FloatingMenuButton from "@/components/floating-menu-button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Toaster } from "sonner"
 
 type AppScreen = "menu" | "game" | "howToPlay"
 
@@ -171,6 +172,10 @@ export default function Home() {
     setCurrentScreen("howToPlay")
   }
 
+  const handleTelegramLeaderboardClick = () => {
+    window.location.href = '/telegram-leaderboard'
+  }
+
   const handleBackToMenu = () => {
     // Clear any running game
     if (timerInterval) clearInterval(timerInterval)
@@ -195,7 +200,12 @@ export default function Home() {
   const renderScreen = () => {
     switch (currentScreen) {
       case "menu":
-        return <MainMenu onPlay={handlePlayClick} onRanking={handleRankingClick} onHowToPlay={handleHowToPlayClick} />
+        return <MainMenu 
+          onPlay={handlePlayClick} 
+          onRanking={handleRankingClick} 
+          onHowToPlay={handleHowToPlayClick}
+          onTelegramLeaderboard={handleTelegramLeaderboardClick}
+        />
 
       case "howToPlay":
         return <HowToPlay onBack={handleBackToMenu} />
@@ -247,6 +257,7 @@ export default function Home() {
     <>
       {/* Telegram WebApp Script */}
       <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+      <Toaster position="top-right" />
 
       <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-950">
         <div className="w-full max-w-md bg-white dark:bg-gray-800 text-black dark:text-white rounded-lg shadow-lg overflow-hidden">{renderScreen()}</div>
