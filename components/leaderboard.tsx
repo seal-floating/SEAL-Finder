@@ -91,14 +91,69 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       }
       
       // Attempt to get high scores
-      const highScores = await getGameHighScores()
+      console.log('Fetching leaderboard entries...');
+      
+      // If in development mode, try to get mock data from Redis directly first
+      if (isDevelopment()) {
+        try {
+          console.log('Development mode: trying to get leaderboard data from Redis directly');
+          const { getLeaderboard } = await import('@/lib/redis');
+          const redisLeaderboard = await getLeaderboard();
+          
+          if (redisLeaderboard && redisLeaderboard.length > 0) {
+            console.log(`Loaded ${redisLeaderboard.length} entries from Redis in development mode`);
+            setTelegramLeaderboard(redisLeaderboard);
+            return;
+          } else {
+            console.log('No entries found in Redis in development mode, falling back to getGameHighScores');
+          }
+        } catch (redisError) {
+          console.warn('Failed to get direct Redis leaderboard in development mode:', redisError);
+        }
+      }
+      
+      // Fall back to the regular method which will handle both Telegram API and Redis fallbacks
+      const highScores = await getGameHighScores();
       
       if (highScores && highScores.length > 0) {
-        console.log(`Leaderboard loaded with ${highScores.length} entries`)
-        setTelegramLeaderboard(highScores)
+        console.log(`Leaderboard loaded with ${highScores.length} entries`);
+        setTelegramLeaderboard(highScores);
       } else {
-        console.log('Leaderboard is empty')
-        setTelegramLeaderboard([])
+        console.log('Leaderboard is empty');
+        
+        // If in development mode and we got no data, use a mock leaderboard for testing
+        if (isDevelopment()) {
+          console.log('Using mock leaderboard in development mode');
+          const MOCK_ENTRIES = [
+            {
+              rank: 1,
+              telegramId: 'dev-user-123',
+              username: 'dev_user',
+              firstName: 'Dev',
+              lastName: 'User',
+              score: 5000
+            },
+            {
+              rank: 2,
+              telegramId: 'dev-user-456',
+              username: 'test_user',
+              firstName: 'Test',
+              lastName: 'User',
+              score: 4500
+            },
+            {
+              rank: 3,
+              telegramId: 'dev-user-789',
+              username: 'another_user',
+              firstName: 'Another',
+              lastName: 'User',
+              score: 4000
+            }
+          ];
+          setTelegramLeaderboard(MOCK_ENTRIES);
+        } else {
+          setTelegramLeaderboard([]);
+        }
       }
     } catch (err) {
       console.error('Error fetching leaderboard:', err)

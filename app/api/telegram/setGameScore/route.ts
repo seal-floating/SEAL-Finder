@@ -77,16 +77,45 @@ export async function POST(request: NextRequest) {
       requestParams.message_id = body.messageId;
     } else {
       // Special case: For Telegram games, we need to circumvent this by using a different approach
-      // We'll just return a special message and let the client know the score was saved but not linked to a message
-      console.log('No message identifier provided, storing score in the leaderboard only');
+      // Try to save the score in Redis since we can't use the Telegram Bot API without message ID
+      console.log('No message identifier provided, storing score in Redis instead');
       
-      // When using setScore in a Telegram Game, we need to tell the client that even though
-      // we can't update the specific message, the score was registered
-      return NextResponse.json({ 
-        ok: true, 
-        result: true,
-        details: "Score saved to leaderboard without message update" 
-      });
+      // Import Redis functions and store the score there
+      try {
+        const { storeScore } = require('../../../lib/redis');
+        
+        // Store score in Redis
+        const result = await storeScore(
+          userId,
+          body.username || '',
+          body.firstName || '',
+          body.lastName || '',
+          score
+        );
+        
+        if (result) {
+          console.log('Successfully stored score in Redis as primary storage');
+          return NextResponse.json({ 
+            ok: true, 
+            result: true,
+            details: "Score saved to Redis leaderboard" 
+          });
+        } else {
+          console.error('Failed to store score in Redis');
+          return NextResponse.json({ 
+            ok: false, 
+            error: "Failed to store score in Redis",
+            details: "Score could not be saved due to Redis error" 
+          }, { status: 500 });
+        }
+      } catch (redisError) {
+        console.error('Error using Redis for score storage:', redisError);
+        return NextResponse.json({ 
+          ok: false, 
+          error: "Redis storage error",
+          details: redisError instanceof Error ? redisError.message : "Unknown Redis error" 
+        }, { status: 500 });
+      }
     }
     
     console.log('Sending request to Telegram API:', requestParams);

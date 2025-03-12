@@ -253,6 +253,13 @@ export async function submitGameScore(score: number) {
     }
   }
   
+  console.log('Submitting score for user:', {
+    telegramId: user.telegramId,
+    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName
+  });
+  
   console.log('Submitting score:', score, 'for user:', user);
   
   try {
@@ -319,6 +326,9 @@ export async function submitGameScore(score: number) {
         },
         body: JSON.stringify({
           userId: user.telegramId,
+          username: user.username || '',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
           score,
           gameShortName: getGameShortName(),
           inlineMessageId, // Add inline_message_id if we have it
@@ -408,8 +418,24 @@ export async function submitGameScore(score: number) {
 
 // Get high scores from Telegram GameScore API
 export async function getGameHighScores() {
-  // In development mode, return mock leaderboard data
+  // In development mode, we now still use Redis if available, with mock data as a fallback
   if (isDevelopment()) {
+    console.log('Development mode: Checking Redis first before using mock leaderboard data');
+    
+    // Try Redis first, even in development
+    try {
+      const { getLeaderboard } = await import('@/lib/redis');
+      const redisLeaderboard = await getLeaderboard();
+      
+      if (redisLeaderboard && redisLeaderboard.length > 0) {
+        console.log(`Found ${redisLeaderboard.length} real entries in Redis during development`);
+        return redisLeaderboard;
+      }
+    } catch (redisError) {
+      console.warn('Development: Redis check failed:', redisError);
+    }
+    
+    // If no Redis data, use mock data in dev mode
     console.log('Development mode: Using mock leaderboard data');
     
     // Simulate API response delay
@@ -460,6 +486,27 @@ export async function getGameHighScores() {
     console.log('Fetching leaderboard for user:', user.telegramId);
     
     try {
+      console.log('Starting getGameHighScores process for user:', user.telegramId);
+      
+      // First try to use our Redis leaderboard directly
+      // This helps us ensure scores submitted with our fallback mechanism are visible
+      try {
+        console.log('Proactively checking Redis leaderboard first');
+        const { getLeaderboard } = await import('@/lib/redis');
+        const redisLeaderboard = await getLeaderboard();
+        
+        if (redisLeaderboard && redisLeaderboard.length > 0) {
+          console.log(`Found ${redisLeaderboard.length} entries in Redis leaderboard, using that first`);
+          return redisLeaderboard;
+        } else {
+          console.log('No entries found in Redis leaderboard, falling back to Telegram API');
+        }
+      } catch (redisError) {
+        console.warn('Failed to get Redis leaderboard:', redisError);
+      }
+      
+      // If Redis check didn't return results, try Telegram API
+      console.log('Attempting to fetch leaderboard from Telegram API');
       const response = await fetch(`/api/telegram/getGameHighScores?userId=${user.telegramId}&gameShortName=${getGameShortName()}`);
       
       if (!response.ok) {
@@ -472,7 +519,7 @@ export async function getGameHighScores() {
         const redisLeaderboard = await getLeaderboard();
         
         if (redisLeaderboard && redisLeaderboard.length > 0) {
-          console.log(`Loaded ${redisLeaderboard.length} entries from Redis fallback leaderboard`);
+          console.log(`Loaded ${redisLeaderboard.length} entries from Redis fallback leaderboard after Telegram API error`);
           return redisLeaderboard;
         }
         
