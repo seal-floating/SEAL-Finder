@@ -14,17 +14,40 @@ export const getTelegramWebApp = () => {
 
 // Get user data from Telegram
 export const getTelegramUser = () => {
-  const webApp = getTelegramWebApp()
-  if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-    return webApp.initDataUnsafe.user
-  }
+  try {
+    const webApp = getTelegramWebApp()
+    if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+      return webApp.initDataUnsafe.user
+    }
+    
+    // Check if we're in development environment
+    const isDev = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+    // Log the status
+    if (isDev) {
+      console.log('Development mode detected in leaderboard-service, using mock user');
+    } else {
+      console.warn('Telegram user information not found in leaderboard-service');
+    }
 
-  // Return a default user for testing outside of Telegram
-  return {
-    id: "local-user",
-    first_name: "Local",
-    last_name: "User",
-    username: "local_user",
+    // Return a default user for testing outside of Telegram
+    return {
+      id: "local-user",
+      first_name: "Local",
+      last_name: "User",
+      username: "local_user",
+    }
+  } catch (error) {
+    console.error('Error getting Telegram user in leaderboard-service:', error);
+    
+    // Return a default user on error
+    return {
+      id: "error-user",
+      first_name: "Error",
+      last_name: "User",
+      username: "error_user",
+    }
   }
 }
 

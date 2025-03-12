@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const gameShortName = searchParams.get('gameShortName');
 
+    // Log request information for debugging
+    console.log('Received high scores request:', { 
+      userId, 
+      gameShortName,
+    });
+
     // Validate required parameters
     if (!userId || !gameShortName) {
       console.error('Missing required parameters:', { userId, gameShortName });
@@ -33,23 +39,58 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`Getting high scores for game ${gameShortName}`);
+    console.log(`Getting high scores for user ${userId} in game ${gameShortName}`);
 
     // Call Telegram Bot API to get high scores
     const telegramApiUrl = `${TELEGRAM_API_BASE}${BOT_TOKEN}/getGameHighScores`;
+    const apiUrl = `${telegramApiUrl}?user_id=${encodeURIComponent(userId)}&game_short_name=${encodeURIComponent(gameShortName)}`;
     
-    const telegramResponse = await fetch(`${telegramApiUrl}?user_id=${userId}&game_short_name=${gameShortName}`);
+    console.log('Calling Telegram API at:', apiUrl.replace(BOT_TOKEN, 'BOT_TOKEN_REDACTED'));
 
-    // Get response from Telegram
-    const telegramData = await telegramResponse.json();
+    const telegramResponse = await fetch(apiUrl);
+
+    // Get response text from Telegram
+    const telegramResponseText = await telegramResponse.text();
     
-    console.log('Telegram API response:', telegramData);
+    // Try to parse as JSON
+    let telegramData;
+    try {
+      telegramData = JSON.parse(telegramResponseText);
+      console.log('Telegram API response:', telegramData);
+    } catch (e) {
+      console.error('Error parsing Telegram API response as JSON:', e);
+      console.log('Raw Telegram API response:', telegramResponseText);
+      
+      return NextResponse.json({ 
+        error: 'Error parsing Telegram API response', 
+        details: telegramResponseText 
+      }, { status: 500 });
+    }
 
     if (!telegramResponse.ok) {
+      console.error('Error from Telegram API. Status:', telegramResponse.status, 'Response:', telegramData);
+      
+      // Provide more specific error message based on Telegram API error
+      let errorMessage = 'Error from Telegram API';
+      if (telegramData?.description) {
+        if (telegramData.description.includes('USER_NOT_FOUND')) {
+          errorMessage = 'Telegram user not found';
+        } else if (telegramData.description.includes('GAME_SHORT_NAME_INVALID')) {
+          errorMessage = 'Invalid game short name';
+        } else {
+          errorMessage = telegramData.description;
+        }
+      }
+      
       return NextResponse.json({ 
-        error: 'Error from Telegram API', 
+        error: errorMessage, 
         details: telegramData 
       }, { status: telegramResponse.status });
+    }
+
+    // If we have an empty result, log it but return as normal
+    if (!telegramData.result || telegramData.result.length === 0) {
+      console.log('No high scores found for this user and game');
     }
 
     return NextResponse.json(telegramData);

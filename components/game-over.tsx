@@ -83,6 +83,14 @@ export default function GameOver({
       const score = calculateGameScore();
       console.log('Attempting to submit score:', score);
       
+      // Import the functions to ensure we're using the latest version
+      const { submitGameScore, initTelegramWebApp } = await import("@/lib/telegram");
+      
+      // Try to initialize Telegram WebApp again before submitting score
+      if (!isDevelopment()) {
+        await initTelegramWebApp();
+      }
+      
       const result = await submitGameScore(score);
       
       if (result.success) {
@@ -96,9 +104,20 @@ export default function GameOver({
       }
     } catch (error) {
       console.error('Error submitting Telegram score:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Extract and format error message
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Provide more user-friendly error messages
+      if (errorMessage.includes('Telegram user information not found')) {
+        errorMessage = 'Error submitting score: Telegram user information not found';
+      }
+      
       setSubmitError(errorMessage);
-      toast.error('Error submitting score: ' + errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSubmittingScore(false);
     }

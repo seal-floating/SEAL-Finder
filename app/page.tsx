@@ -40,26 +40,34 @@ export default function Home() {
 
   // Initialize Telegram WebApp
   useEffect(() => {
-    const handleTelegramEvent = () => {
-      setTelegramReady(true)
-      const webApp = getTelegramWebApp()
-      if (webApp) {
-        webApp.ready()
-        webApp.expand()
+    const initTelegram = async () => {
+      try {
+        // Import the proper functions from telegram.ts
+        const { waitForTelegramWebApp, getTelegramUser } = await import("@/lib/telegram")
+        
+        // Wait for Telegram WebApp with a timeout
+        const initialized = await waitForTelegramWebApp(5000) // 5 second timeout
+        
+        if (initialized) {
+          console.log("Telegram WebApp initialized successfully")
+          setTelegramReady(true)
+          
+          // Check if user data is available
+          const user = getTelegramUser()
+          if (user) {
+            console.log("Telegram user information loaded:", user.telegramId)
+          } else {
+            console.warn("Telegram WebApp initialized but user information not available")
+          }
+        } else {
+          console.warn("Failed to initialize Telegram WebApp, will operate in limited mode")
+        }
+      } catch (error) {
+        console.error("Error initializing Telegram:", error)
       }
     }
 
-    if (typeof window !== "undefined") {
-      if ("Telegram" in window && "WebApp" in (window as any).Telegram) {
-        handleTelegramEvent()
-      } else {
-        window.addEventListener("TelegramWebAppReady", handleTelegramEvent)
-      }
-    }
-
-    return () => {
-      window.removeEventListener("TelegramWebAppReady", handleTelegramEvent)
-    }
+    initTelegram()
   }, [])
 
   const startNewGame = (newLevel?: GameLevel) => {
@@ -248,7 +256,20 @@ export default function Home() {
   return (
     <>
       {/* Telegram WebApp Script */}
-      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+      <Script 
+        src="https://telegram.org/js/telegram-web-app.js" 
+        strategy="beforeInteractive"
+        onLoad={() => {
+          console.log('Telegram WebApp script loaded successfully');
+          // Initialize Telegram WebApp after script loads
+          import('@/lib/telegram').then(({ initTelegramWebApp }) => {
+            initTelegramWebApp();
+          });
+        }}
+        onError={() => {
+          console.error('Failed to load Telegram WebApp script');
+        }}
+      />
       <Toaster position="top-right" />
 
       <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-950">

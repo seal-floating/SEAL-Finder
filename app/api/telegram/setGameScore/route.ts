@@ -20,6 +20,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, score, gameShortName } = body;
 
+    // Log request information for debugging
+    console.log('Received score submission request:', { 
+      userId, 
+      score, 
+      gameShortName,
+      userIdType: typeof userId,
+      scoreType: typeof score
+    });
+
     // Validate required parameters
     if (!userId || score === undefined || !gameShortName) {
       console.error('Missing required parameters:', { userId, score, gameShortName });
@@ -33,33 +42,73 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate numeric types
+    if (typeof score !== 'number') {
+      console.error('Invalid score type:', typeof score);
+      return NextResponse.json({ 
+        error: 'Invalid score type, must be a number',
+        details: { providedType: typeof score }
+      }, { status: 400 });
+    }
+
     console.log(`Setting game score for user ${userId}: ${score} in game ${gameShortName}`);
 
     // Call Telegram Bot API to set game score
     const telegramApiUrl = `${TELEGRAM_API_BASE}${BOT_TOKEN}/setGameScore`;
+    
+    const requestParams = {
+      user_id: userId,
+      score: Math.floor(score), // Telegram requires integer scores
+      force: false, // Only update if the new score is higher than previous scores
+      disable_edit_message: true,
+      game_short_name: gameShortName
+    };
+    
+    console.log('Sending request to Telegram API:', requestParams);
     
     const telegramResponse = await fetch(telegramApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        user_id: userId,
-        score: Math.floor(score), // Telegram requires integer scores
-        force: false, // Only update if the new score is higher than previous scores
-        disable_edit_message: true,
-        game_short_name: gameShortName
-      }),
+      body: JSON.stringify(requestParams),
     });
 
-    // Get response from Telegram
-    const telegramData = await telegramResponse.json();
+    // Get response text from Telegram
+    const telegramResponseText = await telegramResponse.text();
     
-    console.log('Telegram API response:', telegramData);
+    // Try to parse as JSON
+    let telegramData;
+    try {
+      telegramData = JSON.parse(telegramResponseText);
+      console.log('Telegram API response:', telegramData);
+    } catch (e) {
+      console.error('Error parsing Telegram API response as JSON:', e);
+      console.log('Raw Telegram API response:', telegramResponseText);
+      
+      return NextResponse.json({ 
+        error: 'Error parsing Telegram API response', 
+        details: telegramResponseText 
+      }, { status: 500 });
+    }
 
     if (!telegramResponse.ok) {
+      console.error('Error from Telegram API. Status:', telegramResponse.status, 'Response:', telegramData);
+      
+      // Provide more specific error message based on Telegram API error
+      let errorMessage = 'Error from Telegram API';
+      if (telegramData?.description) {
+        if (telegramData.description.includes('USER_NOT_FOUND')) {
+          errorMessage = 'Telegram user not found';
+        } else if (telegramData.description.includes('GAME_SHORT_NAME_INVALID')) {
+          errorMessage = 'Invalid game short name';
+        } else {
+          errorMessage = telegramData.description;
+        }
+      }
+      
       return NextResponse.json({ 
-        error: 'Error from Telegram API', 
+        error: errorMessage, 
         details: telegramData 
       }, { status: telegramResponse.status });
     }

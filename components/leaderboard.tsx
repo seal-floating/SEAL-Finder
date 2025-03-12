@@ -65,11 +65,31 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
     setError(null)
     
     try {
+      // Attempt to get high scores
       const highScores = await getGameHighScores()
-      setTelegramLeaderboard(highScores)
+      
+      if (highScores && highScores.length > 0) {
+        console.log(`Leaderboard loaded with ${highScores.length} entries`)
+        setTelegramLeaderboard(highScores)
+      } else {
+        console.log('Leaderboard is empty')
+        setTelegramLeaderboard([])
+      }
     } catch (err) {
       console.error('Error fetching leaderboard:', err)
-      setError('Unable to load leaderboard data')
+      
+      // Extract more specific error message if available
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      
+      // Use the specific error message if it's descriptive, otherwise use a generic one
+      if (errorMessage.includes('Telegram user information not found')) {
+        setError('Unable to load leaderboard: Telegram user information not found')
+      } else if (errorMessage.includes('Telegram')) {
+        setError(errorMessage)
+      } else {
+        setError('Unable to load leaderboard data')
+      }
+      
       setTelegramLeaderboard([])
     } finally {
       setLoading(false)
